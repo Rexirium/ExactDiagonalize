@@ -2,27 +2,13 @@ using MKL, LinearAlgebra
 using SparseArrays
 
 include("utils.jl")
+include("state_basis.jl")
 
 abstract type AbstractOpSum end
-abstract type AbstractBasis end
 
 mutable struct SpinOpSum <: AbstractOpSum
     type::DataType
     opvec::AbstractVector
-end
-
-struct NumBasis <: AbstractBasis
-    num::Int
-    bitsvec::Vector{<:Int}
-
-    NumBasis(lsize::Int, num::Int) = new(num, numbitbasis(lsize, num))
-end
-
-struct TotalBasis <: AbstractBasis
-    lsize::Int
-    bitsvec::UnitRange{<:Int}
-
-    TotalBasis(lsize::Int) = new(lsize, 0 : (1 << lsize - 1))
 end
 
 function act(opstr::Symbol, loc::Int, bits::Int, T::DataType)
@@ -115,6 +101,9 @@ function makeHamiltonian(ops::AbstractOpSum, lsize::Int, qns::Symbol = :N)
     return hmats
 end
 
+function timeEvolve(ops::AbstractOpSum, init::AbstractState)
+end
+
 let 
     L, N = 10, 5
 
@@ -131,5 +120,5 @@ let
     basis = NumBasis(L, N)
     @time makeHamiltonian(ops, basis)
     
-    nothing
+    NumState("1001011010")
 end
