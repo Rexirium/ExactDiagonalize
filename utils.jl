@@ -1,31 +1,35 @@
-function readbit(num::Int, pos::Int)
-    return (num >> (pos -1)) & 1 == 1
+function readbit(bits::Int, pos::Int)::Bool
+    return (bits >> (pos - 1)) & 1 == 1
 end
 # count number of ones between bit i and j (excluding i and j), i<j 
 # and return the sign according to the odd or even of the number 
-function signbetween(num::Int, i::Int, j::Int)
+function signbetween(bits::Int, i::Int, j::Int)
     mask = 1<<(j-i-1) -1
-    segnum = (num>>i) & mask
-    return (-1)^count_ones(segnum)
+    segbits = (bits>>i) & mask
+    return (-1)^count_ones(segbits)
 end
 
-function splitbasis(num::Int, b::Int)
-    b >=0 || return 0, num
-    left = num >> b
-    right = num & ((1<<b) - 1)
+function flip(bits::Int, pos::Int)::Int
+    return bits ⊻ (1 << (pos -1))
+end
+
+function splitbasis(bits::Int, b::Int)
+    b >=0 || return 0, bits
+    left = bits >> b
+    right = bits & ((1<<b) - 1)
     return right, left
 end
 
-function numbitbasis(L::Int, N::Int)
+function numbitbasis(len::Int, num::Int)
     """
     generating all the L-bit integers with N bits read 1.
     """
-    N > L && error("N is larger than L")
-    N == 0 && return Int[0]
+    num > len && error("N is larger than L")
+    num == 0 && return Int[0]
     basis = Int[]
-    sizehint!(basis, binomial(L, N))
-    maxind = (1<<L) - 1
-    ind = (1<<N) - 1
+    sizehint!(basis, binomial(len, num))
+    maxind = (1 << len) - 1
+    ind = (1 << num) - 1
     while ind <= maxind
         push!(basis, ind)
         u = ind & (-ind)
