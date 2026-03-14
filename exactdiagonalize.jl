@@ -31,13 +31,13 @@ function act(opstr::String, loc::Tuple{Int, Int}, bits::Int, T::DataType)
     end
 end
 
-function trans(op::Tuple, bits::Int)
+function trans(op::Tuple, bits::Int, T::DataType)
     element = op[1]
     newbits = bits
     oplen = length(op)
 
     for s in 2:2:oplen
-        tmp = act(op[s], op[s+1], newbits, typeof(element))
+        tmp = act(op[s], op[s+1], newbits, T)
         newbits = tmp[1]
         element *= tmp[2]
     end
@@ -47,9 +47,9 @@ end
 function apply!(hmat::Matrix{T}, ops::SpinOpSum, basis::Vector{<:Int}, idx::Int, num::Int) where T <: Number
     bits = basis[idx]
     for op in ops.opvec
-        newbits, element = trans(op, bits)
+        newbits, element = trans(op, bits, T)
         if count_ones(newbits) == num && ! iszero(element)
-            newidx = searchsortedfirst(basis, newbits)
+            newidx = findfirst(==(newbits), basis)
             hmat[newidx, idx] += element
         end
     end
@@ -62,5 +62,5 @@ function makeHamiltonian(ops::AbstractOpSum, basis::Vector{<:Int}, num::Int)
     for j in 1:dim
         apply!(hmat, ops, basis, j, num)
     end
-    return hmat
+    return Hermitian(hmat)
 end
