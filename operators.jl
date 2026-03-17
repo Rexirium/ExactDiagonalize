@@ -11,7 +11,7 @@ mutable struct SpinOpSum <: AbstractOpSum
     opvec::AbstractVector
 end
 
-function act(opstr::Symbol, loc::Int, bits::Int, T::DataType)
+function act(opstr::Symbol, loc::Int, bits::Int, T)
     """
     act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)₂
     |1⟩ = (1, 0)ᵀ = |↑⟩, |0⟩ = (0, 1)ᵀ = |↓⟩
@@ -32,7 +32,7 @@ function act(opstr::Symbol, loc::Int, bits::Int, T::DataType)
     end
 end
 
-function act(opstr::String, loc::Tuple{Int, Int}, bits::Int, T::DataType)
+function act(opstr::String, loc::Tuple{Int, Int}, bits::Int, T)
     if opstr == :CX
         c, t = loc
         bitc = readbit(bits, c)
