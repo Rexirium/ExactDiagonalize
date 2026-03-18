@@ -1,7 +1,7 @@
 
 function spectrum(ops::AbstractOpSum, basis::AbstractBasis)
     hmat = makeHamiltonian(ops, basis)
-    return eigvals(hmat)
+    return eigvals(Hermitian(hmat))
 end
 
 function spectrum_numconserved(ops::AbstractOpSum, lsize::Int)
@@ -10,7 +10,7 @@ function spectrum_numconserved(ops::AbstractOpSum, lsize::Int)
     for num in 0:lsize
         basis = NumBasis(lsize, num)
         hmat = makeHamiltonian(ops, basis)
-        eigs = eigvals!(hmat)
+        eigs = eigvals!(Hermitian(hmat))
         append!(energies, eigs)
     end
     return energies
@@ -18,7 +18,7 @@ end
 
 function timeEvolve_exact(ops::AbstractOpSum, init::AbstractState, tf::Real)
     hmat = makeHamiltonian(ops, init.basis)
-    eigenergy, U = eigen(hmat)
+    eigenergy, U = eigen(Hermitian(hmat))
     phases = complex.(cos.(tf * eigenergy), - sin.(tf * eigenergy))
     expEt = Diagonal(phases)
     final = U * expEt * U' * (init.vector)
@@ -27,7 +27,7 @@ end
 
 function timeEvolve_exact(ops::AbstractOpSum, init::AbstractState, ts::AbstractVector, obs::AbstractObserver)
     hmat = makeHamiltonian(ops, init.basis)
-    eigenergy, U = eigen(hmat)
+    eigenergy, U = eigen(Hermitian(hmat))
     dim = length(eigenergy)
 
     phases = Vector{ComplexF64}(undef, dim)

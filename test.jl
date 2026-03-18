@@ -17,14 +17,14 @@ let
         push!(os, (-1.0, :iY, j, :iY, nj))
     end
     # push!(os, (1.0, :X, L))
-    ops = SpinOpSum(Float64, os)
+    ops = SpinOpSum{Float64}(os)
 
     obs = OperatorObserver((1.0, :Z, L), init.basis)
     
     #makeHamiltonian(ops, init.basis)
     
     ts = 0.0:0.02:10.0
-    timeEvolve_exact(ops, init, ts, obs)
+    timeEvolve_rk4(ops, init, ts, obs)
     fig, ax = lines(ts, obs.data)
     
 end

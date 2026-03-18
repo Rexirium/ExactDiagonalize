@@ -6,12 +6,11 @@ include("state_basis.jl")
 
 abstract type AbstractOpSum end
 
-mutable struct SpinOpSum <: AbstractOpSum
-    type::DataType
-    opvec::AbstractVector
+mutable struct SpinOpSum{T <: Number} <: AbstractOpSum
+    opvec::Vector{<:Tuple}
 end
 
-function act(opstr::Symbol, loc::Int, bits::Int, T)
+function act(opstr::Symbol, loc::Int, bits::Int, T::DataType)
     """
     act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)₂
     |1⟩ = (1, 0)ᵀ = |↑⟩, |0⟩ = (0, 1)ᵀ = |↓⟩
@@ -32,7 +31,7 @@ function act(opstr::Symbol, loc::Int, bits::Int, T)
     end
 end
 
-function act(opstr::String, loc::Tuple{Int, Int}, bits::Int, T)
+function act(opstr::String, loc::Tuple{Int, Int}, bits::Int, T::DataType)
     if opstr == :CX
         c, t = loc
         bitc = readbit(bits, c)
@@ -71,7 +70,7 @@ function apply!(op::Tuple, psi::AbstractState)
     lmul!(opmat, psi.vector)
 end
 
-function op2mat(op::Tuple, basis::AbstractBasis; hermitian::Bool=true, sparsed::Bool=true)
+function op2mat(op::Tuple, basis::AbstractBasis; sparsed::Bool=true)
     dim = length(basis.bitsvec)
     T = typeof(op[1])
     opmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim)
@@ -81,7 +80,7 @@ function op2mat(op::Tuple, basis::AbstractBasis; hermitian::Bool=true, sparsed::
         (i <= 0 || iszero(element)) && continue
         opmat[i, j] += element
     end
-    return hermitian ? Hermitian(opmat) : opmat
+    return opmat
 end
 
 function expected(op::Tuple, psi::AbstractState)
@@ -96,18 +95,18 @@ function inner(x::S, op::Tuple, y::S) where S <: AbstractState
     return x.vector' * opmat * y.vector
 end
 
-function makeHamiltonian(ops::AbstractOpSum, basis::AbstractBasis; sparsed::Bool=false)
+function makeHamiltonian(ops::SpinOpSum{T}, basis::AbstractBasis; sparsed::Bool=false) where T <: Number
     dim = length(basis.bitsvec)
-    hmat = sparsed ? spzeros(ops.type, dim, dim) : zeros(ops.type, dim, dim) 
+    hmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim) 
     for (j, bits) in enumerate(basis.bitsvec)
         for op in ops.opvec
-            newbits, element = apply(op, bits, ops.type)
+            newbits, element = apply(op, bits, T)
             i = findindex(basis, newbits)
             (i <= 0 || iszero(element)) && continue
             hmat[i, j] += element
         end
     end
-    return Hermitian(hmat)
+    return hmat
 end
 
 #=============Obsrever system to record quantities during evolution=============#
@@ -117,8 +116,8 @@ mutable struct OperatorObserver{T <: Number} <: AbstractObserver
     opmat::Matrix{T}
     data::Vector{Float64}
 
-    OperatorObserver(op::Tuple, basis::AbstractBasis; hermitian=true, sparsed=true) = new{typeof(op[1])}(
-        op2mat(op, basis; hermitian=hermitian, sparsed=sparsed), Float64[]
+    OperatorObserver(op::Tuple, basis::AbstractBasis; sparsed=true) = new{typeof(op[1])}(
+        op2mat(op, basis; sparsed=sparsed), Float64[]
     )
 end
 

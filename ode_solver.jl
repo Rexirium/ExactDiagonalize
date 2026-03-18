@@ -1,6 +1,6 @@
 
 function timeEvolve_rk4(ops::AbstractOpSum, init::AbstractState, ts::AbstractVector, obs::AbstractObserver)
-    hmat = makeHamiltonian(ops, init.basis)
+    hmat = makeHamiltonian(ops, init.basis; sparsed=true)
     psi = copy(init.vector)
     dim = length(psi)
     

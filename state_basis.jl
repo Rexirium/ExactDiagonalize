@@ -112,6 +112,5 @@ end
 
 function Base.:+(x::S, y::S) where S <: AbstractState
     length(x.vector) == length(y.vector) || error("wrong dimension of two states!")
-    basis = y.basis
-    return State(basis, normalize(x.vector + y.vector))
+    return State(y.basis, x.vector + y.vector)
 end
