@@ -1,7 +1,7 @@
 
 function timeEvolve_rk4(ops::AbstractOpSum, init::AbstractState, ts::AbstractVector, obs::AbstractObserver)
-    hmat = makeHamiltonian(ops, init.basis; sparsed=true)
-    psi = copy(init.vector)
+    ihmat = -im * makeHamiltonian(ops, init.basis; sparsed=true)
+    psi = ComplexF64.(init.vector)
     dim = length(psi)
     
     k1 = Vector{ComplexF64}(undef, dim)
@@ -18,13 +18,13 @@ function timeEvolve_rk4(ops::AbstractOpSum, init::AbstractState, ts::AbstractVec
         h = ts[i+1] - t
         h_2 = h / 2
 
-        k1 .= -im * (hmat * psi)
+        mul!(k1, ihmat, psi)
         @. tmp = psi + h_2 * k1
-        k2 .= -im * hmat * tmp
+        mul!(k2, ihmat, tmp)
         @. tmp = psi + h_2 * k2
-        k3 .= -im * hmat * tmp
+        mul!(k3, ihmat, tmp)
         @. tmp = psi + h * k3
-        k4 .= -im * hmat * tmp
+        mul!(k4, ihmat, tmp)
 
         @. psi += (h/6) * (k1 + 2*k2 + 2*k3 + k4)
     end

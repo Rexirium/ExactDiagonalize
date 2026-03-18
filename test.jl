@@ -25,10 +25,10 @@ let
 
     obs = OperatorObserver((1.0, :Z, L), init.basis)
     
-    @show makeHamiltonian(ops2, init.basis)
+    #@show makeHamiltonian(ops2, init.basis)
     
     ts = 0.0:0.02:10.0
-    timeEvolve_exact(ops, init, ts, obs)
+    timeEvolve_rk4(ops, init, ts, obs)
 
     fig = Figure()
     ax = Axis(fig[1,1],

@@ -32,13 +32,13 @@ function timeEvolve_exact(ops::AbstractOpSum, init::AbstractState, ts::AbstractV
 
     phases = Vector{ComplexF64}(undef, dim)
     expEt = Diagonal{ComplexF64}(undef, dim)
-    psi = copy(init.vector)
+    psi = ComplexF64.(init.vector)
 
     record!(obs, psi)
     for t in ts[2:end]
         phases .= complex.(cos.(t * eigenergy), - sin.(t * eigenergy))
         expEt.diag .= phases
-        psi .= U * expEt * U' * (init.vector)
+        mul!(psi, U * expEt * U', init.vector)
         record!(obs, psi)
     end
     return State(init.basis, psi)
