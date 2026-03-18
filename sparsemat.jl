@@ -1,4 +1,3 @@
-include("operators.jl")
 
 function updating!(psi::Vector{T}, hmat::SpMatrix, dt::Real, order::Int) where T <: Number
     fac = one(T)
@@ -23,8 +22,6 @@ function timeEvolve_spmat(ops::AbstractOpSum, init::AbstractState, ts::AbstractV
         end
         dt = ts[i + 1] - t
         updating!(psi, hmat, dt, order)
-
-        record!(obs, psi)
     end
     return State(init.basis, psi)
 end

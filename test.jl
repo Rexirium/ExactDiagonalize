@@ -1,6 +1,7 @@
 include("operators.jl")
 include("exactdiagonalize.jl")
 include("ode_solver.jl")
+include("sparsemat.jl")
 
 using CairoMakie
 
@@ -27,8 +28,8 @@ let
     
     #@show makeHamiltonian(ops2, init.basis)
     
-    ts = 0.0:0.02:10.0
-    timeEvolve_rk4(ops, init, ts, obs)
+    ts = 0.0:0.05:10.0
+    @time timeEvolve_spmat(ops, init, ts, obs; order=5)
 
     fig = Figure()
     ax = Axis(fig[1,1],
