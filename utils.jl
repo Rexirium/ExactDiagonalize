@@ -2,10 +2,10 @@ function readbit(bits::Int, pos::Int)::Bool
     return (bits >> (pos - 1)) & true == true
 end
 
-function readbit(bits::Int, i1::Int, i2::Int)::Tuple{Bool, Bool}
-    shifted = bits >> (i1 - 1)
+function readbit(bits::Int, pos::Tuple{Int, Int})::Tuple{Bool, Bool}
+    shifted = bits >> (pos[1] - 1)
     b1 = shifted & true == true
-    shifted >>= (i2 - i1)
+    shifted >>= (pos[2] - pos[1])
     b2 = shifted & true == true
     return b1, b2
 end

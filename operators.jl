@@ -40,7 +40,7 @@ function OpSum(osvec::Vector{<:Tuple}, eltype::DataType, systype::Val)
     return OpSum{eltype}(covec, opvec)
 end
 
-function act(op::SpinOp, bits::Int, T::DataType)
+@inline function act(op::SpinOp, bits::Int, T::DataType)
     """
     act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)₂
     |1⟩ = (1, 0)ᵀ = |↑⟩, |0⟩ = (0, 1)ᵀ = |↓⟩
@@ -58,12 +58,9 @@ function act(op::SpinOp, bits::Int, T::DataType)
         return flip(bits, op.loc), T(readbit(bits, op.loc))
     elseif op.name == :CX
         c, t = op.loc
-        bitc = readbit(bits, c)
-        return flip(bits, t, bitc), one(T)
+        return flip(bits, t, readbit(bits, c)), one(T)
     elseif op.name == :CZ
-        c, t = op.loc
-        i1, i2 = minmax(c, t)
-        b1, b2 = readbit(bits, i1, i2)
+        b1, b2 = readbit(bits, minmax(op.loc...))
         return bits, T(2 * (b1 ^ b2) - 1)
     else
         error("Operator not specified yet!")
@@ -126,10 +123,9 @@ function makeHamiltonian(opsum::OpSum{T}, basis::AbstractBasis; sparsed::Bool=fa
     opvec = opsum.opvec
 
     hmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim) 
-    for (j, bits) in enumerate(basis.bitsvec)
+    @inbounds for (j, bits) in enumerate(basis.bitsvec)
         for s in 1:opnum
-            ops = opvec[s]
-            newbits, element = apply(covec[s], ops, bits)
+            newbits, element = apply(covec[s], opvec[s], bits)
             i = findindex(basis, newbits)
             (i <= 0 || iszero(element)) && continue
             hmat[i, j] += element

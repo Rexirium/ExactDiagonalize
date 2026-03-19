@@ -30,7 +30,7 @@ let
     #@show makeHamiltonian(ops2, init.basis)
     
     ts = 0.0:0.05:10.0
-    @time timeEvolve_spmat(opsum, init, ts, obs)
+    @time timeEvolve_exact(opsum, init, ts, obs)
 
     fig = Figure()
     ax = Axis(fig[1,1],
