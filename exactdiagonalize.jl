@@ -1,10 +1,10 @@
 
-function spectrum(ops::AbstractOpSum, basis::AbstractBasis)
+function spectrum(ops::OpSum, basis::AbstractBasis)
     hmat = makeHamiltonian(ops, basis)
     return eigvals(Hermitian(hmat))
 end
 
-function spectrum_numconserved(ops::AbstractOpSum, lsize::Int)
+function spectrum_numconserved(ops::OpSum, lsize::Int)
     energies = Float64[]
     sizehint!(energies, 1 << lsize)
     for num in 0:lsize
@@ -16,7 +16,7 @@ function spectrum_numconserved(ops::AbstractOpSum, lsize::Int)
     return energies
 end
 
-function timeEvolve_exact(ops::AbstractOpSum, init::AbstractState, tf::Real)
+function timeEvolve_exact(ops::OpSum, init::AbstractState, tf::Real)
     hmat = makeHamiltonian(ops, init.basis)
     eigenergy, U = eigen(Hermitian(hmat))
     phases = complex.(cos.(tf * eigenergy), - sin.(tf * eigenergy))
@@ -25,7 +25,7 @@ function timeEvolve_exact(ops::AbstractOpSum, init::AbstractState, tf::Real)
     return State(init.basis, final)
 end
 
-function timeEvolve_exact(ops::AbstractOpSum, init::AbstractState, ts::AbstractVector, obs::AbstractObserver)
+function timeEvolve_exact(ops::OpSum, init::AbstractState, ts::AbstractVector, obs::AbstractObserver)
     hmat = makeHamiltonian(ops, init.basis)
     eigenergy, U = eigen(Hermitian(hmat))
     dim = length(eigenergy)

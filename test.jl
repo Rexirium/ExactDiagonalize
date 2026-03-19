@@ -6,6 +6,7 @@ include("sparsemat.jl")
 using CairoMakie
 
 let 
+    systype = Val(:Spin)
     L, N = 10, 1
     Δ = 0.5
 
@@ -19,17 +20,17 @@ let
         push!(os, (-1.0, :iY, j, :iY, nj))
     end
     # push!(os, (1.0, :X, L))
-    ops = SpinOpSum{Float64}(os)
+    opsum = OpSum(os, Float64, systype)
 
     os2 = [(1.0, :Z, j) for j in 1:L]
-    ops2 = SpinOpSum{Float64}(os2)
+    opsum2 = OpSum(os2, Float64, systype)
 
-    obs = OperatorObserver((1.0, :Z, L), init.basis)
+    obs = OperatorObserver((1.0, :Z, L), init.basis, systype)
     
     #@show makeHamiltonian(ops2, init.basis)
     
     ts = 0.0:0.05:10.0
-    @time timeEvolve_spmat(ops, init, ts, obs; order=5)
+    @time timeEvolve_spmat(opsum, init, ts, obs)
 
     fig = Figure()
     ax = Axis(fig[1,1],

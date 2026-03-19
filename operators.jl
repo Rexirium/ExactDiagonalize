@@ -4,42 +4,64 @@ using SparseArrays
 include("utils.jl")
 include("state_basis.jl")
 
-global SpMatrix = SparseMatrixCSC
+const SpMatrix = SparseMatrixCSC
 
-abstract type AbstractOpSum end
+abstract type AbstractOp end
 
-mutable struct SpinOpSum{T <: Number} <: AbstractOpSum
-    opvec::Vector{<:Tuple}
+struct SpinOp <: AbstractOp
+    name::Symbol
+    loc::Union{Int, Tuple{Int, Int}}
+end
+Operator(name::Symbol, loc::Union{Int, Tuple{Int, Int}}, ::Val{:Spin}) = SpinOp(name, loc)
+
+mutable struct OpSum{T <: Number}
+    covec::Vector{T}
+    opvec::Vector{Vector{<:AbstractOp}}
 end
 
-function act(opstr::Symbol, loc::Int, bits::Int, T::DataType)
+function os2ops(os::Tuple, systype::Val)
+    len = length(os)
+    ops = SpinOp[]
+    sizehint!(ops, len ÷ 2)
+    for s in 2:2:len
+        push!(ops, Operator(os[s], os[s+1], systype))
+    end
+    return ops
+end
+
+function OpSum(osvec::Vector{<:Tuple}, eltype::DataType, systype::Val)
+    covec = Vector{eltype}()
+    opvec = Vector{SpinOp}[]
+    for os in osvec
+        ops = os2ops(os, systype)
+        push!(covec, os[1])
+        push!(opvec, ops)
+    end
+    return OpSum{eltype}(covec, opvec)
+end
+
+function act(op::SpinOp, bits::Int, T::DataType)
     """
     act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)₂
     |1⟩ = (1, 0)ᵀ = |↑⟩, |0⟩ = (0, 1)ᵀ = |↓⟩
     I do not specify the Y operator (has complex element) to keep type stability, but use iY instead.
     """
-    if opstr == :Z
-        return bits, T(2 * readbit(bits, loc) - 1)
-    elseif opstr == :X
-        return flip(bits, loc), one(T)
-    elseif opstr == :iY # means simplectic matrix [0 1 ; -1 0], Sp = iY
-        return flip(bits, loc), T(1 - 2 * readbit(bits, loc))
-    elseif opstr == :σp
-        return flip(bits, loc), T(! readbit(bits, loc))
-    elseif opstr == :σm
-        return flip(bits, loc), T(readbit(bits, loc))
-    else
-        error("Operator not specified yet!")
-    end
-end
-
-function act(opstr::Symbol, loc::Tuple{Int, Int}, bits::Int, T::DataType)
-    if opstr == :CX
-        c, t = loc
+    if op.name == :Z
+        return bits, T(2 * readbit(bits, op.loc) - 1)
+    elseif op.name == :X
+        return flip(bits, op.loc), one(T)
+    elseif op.name == :iY # means simplectic matrix [0 1 ; -1 0] = iY
+        return flip(bits, op.loc), T(1 - 2 * readbit(bits, op.loc))
+    elseif op.name == :σp
+        return flip(bits, op.loc), T(! readbit(bits, op.loc))
+    elseif op.name == :σm
+        return flip(bits, op.loc), T(readbit(bits, op.loc))
+    elseif op.name == :CX
+        c, t = op.loc
         bitc = readbit(bits, c)
         return flip(bits, t, bitc), one(T)
-    elseif opstr == :CZ
-        c, t = loc
+    elseif op.name == :CZ
+        c, t = op.loc
         i1, i2 = minmax(c, t)
         b1, b2 = readbit(bits, i1, i2)
         return bits, T(2 * (b1 ^ b2) - 1)
@@ -48,36 +70,25 @@ function act(opstr::Symbol, loc::Tuple{Int, Int}, bits::Int, T::DataType)
     end
 end
 
-function apply(op::Tuple, bits::Int, T::DataType)
-    element = op[1]
-    newbits = bits
-    oplen = length(op)
 
-    for s in 2:2:oplen
-        tmp = act(op[s], op[s+1], newbits, T)
+function apply(coef::T, ops::Vector{<:AbstractOp}, bits::Int) where T <: Number
+    element = coef
+    newbits = bits
+
+    for op in ops
+        tmp = act(op, newbits, T)
         newbits = tmp[1]
         element *= tmp[2]
     end
     return newbits, element
 end
 
-function apply(op::Tuple, psi::AbstractState)
-    opmat = op2mat(op, psi.basis)
-    vector = opmat * psi.vector
-    return State(psi.basis, vector)
-end
-
-function apply!(op::Tuple, psi::AbstractState)
-    opmat = op2mat(op, psi.basis)
-    lmul!(opmat, psi.vector)
-end
-
-function op2mat(op::Tuple, basis::AbstractBasis; sparsed::Bool=true)
+function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::AbstractBasis; sparsed::Bool=true) where T <: Number
     dim = length(basis.bitsvec)
-    T = typeof(op[1])
     opmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim)
+
     for (j, bits) in enumerate(basis.bitsvec)
-        newbits, element = apply(op, bits, T)
+        newbits, element = apply(coeff, ops, bits)
         i = findindex(basis, newbits)
         (i <= 0 || iszero(element)) && continue
         opmat[i, j] += element
@@ -85,24 +96,40 @@ function op2mat(op::Tuple, basis::AbstractBasis; sparsed::Bool=true)
     return opmat
 end
 
-function expected(op::Tuple, psi::AbstractState)
-    opmat = op2mat(op, psi.basis)
+function apply(ops::Vector{<:AbstractOp}, psi::AbstractState, coeff::Number=1.0)
+    opmat = op2mat(coeff, ops, psi.basis)
+    vector = opmat * psi.vector
+    return State(psi.basis, vector)
+end
+
+function apply!(ops::Vector{<:AbstractOp}, psi::AbstractState, coeff::Number=1.0)
+    opmat = op2mat(coeff, ops, psi.basis)
+    lmul!(opmat, psi.vector)
+end
+
+function expected(ops::Vector{<:AbstractOp}, psi::AbstractState, coeff::Number=1.0)
+    opmat = op2mat(coeff, ops, psi.basis)
     v = psi.vector
     return real(v' * opmat * v)
 end
 
-function inner(x::S, op::Tuple, y::S) where S <: AbstractState
+function inner(x::S, ops::Vector{<:AbstractOp}, y::S, coeff::Number=1.0) where S <: AbstractState
     length(x.vector) == length(y.vector) || error("wrong dimension of two states!")
-    opmat = op2mat(op, y.basis)
+    opmat = op2mat(coeff, ops, y.basis)
     return x.vector' * opmat * y.vector
 end
 
-function makeHamiltonian(ops::SpinOpSum{T}, basis::AbstractBasis; sparsed::Bool=false) where T <: Number
+function makeHamiltonian(opsum::OpSum{T}, basis::AbstractBasis; sparsed::Bool=false) where T <: Number
     dim = length(basis.bitsvec)
+    opnum = length(opsum.covec)
+    covec = opsum.covec
+    opvec = opsum.opvec
+
     hmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim) 
     for (j, bits) in enumerate(basis.bitsvec)
-        for op in ops.opvec
-            newbits, element = apply(op, bits, T)
+        for s in 1:opnum
+            ops = opvec[s]
+            newbits, element = apply(covec[s], ops, bits)
             i = findindex(basis, newbits)
             (i <= 0 || iszero(element)) && continue
             hmat[i, j] += element
@@ -118,8 +145,8 @@ mutable struct OperatorObserver{T <: Number} <: AbstractObserver
     opmat::SpMatrix{T}
     data::Vector{Float64}
 
-    OperatorObserver(op::Tuple, basis::AbstractBasis; sparsed::Bool=true) = new{typeof(op[1])}(
-        op2mat(op, basis; sparsed=sparsed), Vector{Float64}()
+    OperatorObserver(os::Tuple, basis::AbstractBasis, systype::Val; sparsed::Bool=true) = new{typeof(os[1])}(
+        op2mat(os[1], os2ops(os, systype), basis; sparsed=sparsed), Vector{Float64}()
     )
 end
 
@@ -132,7 +159,7 @@ mutable struct OpSumObserver{T <: Number} <: AbstractObserver
     opsmat::SpMatrix{T}
     data::Vector{Float64}
 
-    OpSumObserver(ops::SpinOpSum{T}, basis::AbstractBasis; sparsed::Bool=true) where T <: Number = new{T}(
+    OpSumObserver(ops::OpSum{T}, basis::AbstractBasis; sparsed::Bool=true) where T <: Number = new{T}(
         makeHamiltonian(ops, basis; sparsed=sparsed), Vector{Float64}()
     )
 end
