@@ -1,5 +1,5 @@
 .vscode/
-*.toml
+Manifest.toml
 *.png
 *.sh
 

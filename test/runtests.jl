@@ -1,9 +1,11 @@
 using Test
-
+using ExactDiagonalize
+#=
 if !isdefined(Main, :ExactDiagonalize)
     include("../src/ExactDiagonalize.jl")
     using .ExactDiagonalize
 end
+=#
 
 @testset "ExactDiagonalize.jl Tests" begin
 

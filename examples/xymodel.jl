@@ -1,8 +1,10 @@
-# Load ExactDiagonalize package if not already loaded
+#= Load ExactDiagonalize package if not already loaded
 if !isdefined(Main, :ExactDiagonalize)
     include("../src/ExactDiagonalize.jl")
     using .ExactDiagonalize
 end
+=#
+using ExactDiagonalize
 # For plotting
 using CairoMakie
 
