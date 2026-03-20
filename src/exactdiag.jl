@@ -5,9 +5,13 @@ Exact diagonalization and time evolution routines
 exact() = Val(:exact)
 
 # Compute spectrum for given operator sum and basis
-function spectrum(ops::OpSum, basis::AbstractBasis)
+function spectrum(ops::OpSum, basis::AbstractBasis; retvecs::Bool=false)
     hmat = makeHamiltonian(ops, basis)
-    return eigvals(Hermitian(hmat))
+    if retvecs 
+        return eigen(Hermitian(hmat))  
+    else 
+        return eigvals(Hermitian(hmat))
+    end
 end
 
 # Compute full spectrum by summing over all particle numbers

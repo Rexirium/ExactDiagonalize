@@ -14,18 +14,18 @@ ExactDiagonalize enables computational studies of small to moderate-sized quantu
 
 ## Installation
 
-Add ExactDiagonalize to your Julia project:
+Add ExactDiagonalize to your Julia project (maybe later):
 
 ```julia
 using Pkg
 Pkg.add("ExactDiagonalize")
 ```
 
-Or add directly from the repository:
+Or add directly from the repository (**use this method for now**):
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/yourusername/ExactDiagonalize.jl")
+Pkg.add(url="https://github.com/Rexirium/ExactDiagonalize")
 ```
 
 ### Requirements
@@ -77,24 +77,25 @@ timeEvolve(opsum, init, ts, obs)
 
 ### State Representation
 
-- **`NumState`**: State represented by binary occupation string
-- **`FullState`**: State defined on full dimension
-- **`NumBasis`**: Basis generated from particle number occupation
-- **`FullBasis`**: Basis defined on full dimension
+- **`FullState`**: State defined on full dimension of Hilbert space
+- **`NumState`**: Particle number or total spin conserved state (use it when system has $U(1)$ symmetry)
+- **`FullBasis`**: Basis defined on full dimension of Hilbert space
+- **`NumBasis`**: Basis generated from fixed particle number occupation or total spin
 
 ### Operators
 
-- **`SpinOp`**: Individual spin operators (`:X`, `:Y`, `:Z`, `:+`, `:-`, `:iY`)
+- **`SpinOp`**: Individual spin operators ($X$, $Y$, $Z$, $\sigma^+$, $\sigma^-$, $iY$, $CX$, $CZ$)
 - **`Operator`**: Multi-site operator products
 - **`OpSum`**: Linear combinations of operators (Hamiltonian)
 
 ### Functions
 
-- **`spectrum(opsum, basis)`**: Compute eigenvalues and eigenvectors
-- **`exact(opsum, init_state, basis)`**: Exact diagonalization solution
-- **`timeEvolve(opsum, init_state, times, observer)`**: RK4 time evolution
-- **`record!(observer, state, time)`**: Record observable at given time
-- **`makeHamiltonian(opsum, basis)`**: Convert OpSum to sparse matrix Hamiltonian
+- **`spectrum(opsum, basis; retvecs)`**: Compute eigenvalues (and eigenvectors if retvecs is `true`)
+- **`timeEvolve(opsum, init_state, basis, tf)`**: Exact diagonalization time evolution to the final time `tf`
+- **`timeEvolve(opsum, init_state, times, ts, observer, alg)`**: Time evolution performed by chosen algorithm `alg`
+  - `alg`: can take:
+- **`record!(observer, state)`**: Record observable at each time loop.
+- **`makeHamiltonian(opsum, basis; sparsed)`**: Convert OpSum to sparse matrix Hamiltonian if `sparsed = true`
 
 ### System Configuration
 
