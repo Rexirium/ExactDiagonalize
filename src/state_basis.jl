@@ -1,6 +1,9 @@
+
+# Abstract base types for basis and state representations
 abstract type AbstractBasis end
 abstract type AbstractState end
 
+# Dictionary mapping spin or occupation symbols to bit values
 global bitDict = Dict{Symbol, Bool}(
     :Up => true, 
     :Dn => false,
@@ -8,6 +11,7 @@ global bitDict = Dict{Symbol, Bool}(
     :Emp => false
 )
 
+# Convert a vector of symbols (e.g. [:Up, :Dn]) to an integer bitstring
 function translate(strvec::Vector{Symbol})::Int
     bits = 0
     for s in strvec
@@ -17,34 +21,42 @@ function translate(strvec::Vector{Symbol})::Int
     return bits
 end
 #===============Basis constructors=================#
+# Basis for states with fixed particle number (e.g. number of up spins)
 struct NumBasis <: AbstractBasis
-    num::Int
-    bitsvec::Vector{<:Int}
+    num::Int                # number of particles (ones)
+    bitsvec::Vector{<:Int}  # all basis states as bitstrings
 
     NumBasis(lsize::Int, num::Int) = new(num, numbitbasis(lsize, num))
 end
 
+# Basis for all possible states (no conservation)
 struct TotalBasis <: AbstractBasis
-    lsize::Int
-    bitsvec::UnitRange{<:Int}
+    lsize::Int                  # system size
+    bitsvec::UnitRange{<:Int}   # all bitstrings from 0 to 2^lsize-1
 
     TotalBasis(lsize::Int) = new(lsize, 0 : (1 << lsize - 1))
 end
 
+# Find index of a bitstring in NumBasis (returns 0 if not in basis)
 function findindex(basis::NumBasis, bits::Int)
     count_ones(bits) == basis.num || return 0
     return searchsortedfirst(basis.bitsvec, bits)
 end
 
+# Find index of a bitstring in TotalBasis
 findindex(basis::TotalBasis, bits::Int) = bits + 1
 
 
 #===========Particle number conserved state  ===========#
+
+# State vector for a system with fixed particle number
 mutable struct NumState{T <: Number} <: AbstractState
-    basis::NumBasis
-    vector::Vector{T}
+    basis::NumBasis      # basis object
+    vector::Vector{T}   # state vector (amplitudes)
 end
 
+
+# Create a NumState with a single basis state set to 1
 function NumState(lsize::Int, bits::Int; type::DataType=ComplexF64)
     basis = NumBasis(lsize, count_ones(bits))
     vector = zeros(type, length(basis.bitsvec))
@@ -53,9 +65,13 @@ function NumState(lsize::Int, bits::Int; type::DataType=ComplexF64)
     NumState{type}(basis, vector)
 end
 
+
+# Create NumState from a binary string (e.g. "1010")
 NumState(statestr::String; type::DataType=ComplexF64) = 
     NumState(length(statestr), parse(Int, statestr; base=2); type=type)
 
+
+# Create NumState from a vector of symbols (e.g. [:Up, :Dn])
 NumState(strvec::Vector{Symbol}; type::DataType=ComplexF64) = 
     NumState(length(strvec), translate(strvec); type=type)
 

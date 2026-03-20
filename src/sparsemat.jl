@@ -1,10 +1,15 @@
+"""
+Sparse matrix exponential time evolution
+"""
+# Tag for sparse matrix method
 spmat() = Val(:spmat)
 
+# In-place Taylor expansion update for exp(-iHdt)ψ
 function updating!(psi::Vector{T}, hmat::SpMatrix, dt::Real, order::Int) where T <: Number
     fac = one(T)
     tmp = copy(psi)
     Hpsi = Vector{T}(undef, length(psi))
-    for k in 1:order
+    for k in 1:order  # calculate the (-iHt)^k / k! term iteratively
         fac *= -im * dt / k
         mul!(Hpsi, hmat, tmp)
         psi .+= fac * Hpsi
@@ -12,6 +17,7 @@ function updating!(psi::Vector{T}, hmat::SpMatrix, dt::Real, order::Int) where T
     end
 end
 
+# Evolve state using Taylor expansion of exp(-iHt) with sparse matrix
 function timeEvolve(ops::OpSum, init::AbstractState, ts::AbstractVector, obs::AbstractObserver, ::Val{:spmat}; order::Int=4)
     hmat = makeHamiltonian(ops, init.basis; sparsed=true)
     psi = ComplexF64.(init.vector)

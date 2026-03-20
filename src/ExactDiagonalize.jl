@@ -8,6 +8,7 @@ include("operators.jl")
 include("exactdiag.jl")
 include("ode_solver.jl")
 include("sparsemat.jl")
+
 # export public API
 export NumBasis, TotalBasis, NumState, TotalState, State, AbstractState
 export _systype, set_systype, get_systype, AbstractOp, SpinOp, Operator, OpSum, makeHamiltonian

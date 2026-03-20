@@ -1,27 +1,36 @@
+# Include utility and basis definitions
 include("utils.jl")
 include("state_basis.jl")
 
+# System type (e.g., :Spin)
 const _systype = Ref{Val}(Val(:Spin))
 
+# Set the system type
 function set_systype(val::Symbol)
     _systype[] = Val(val)
 end
 
+# Get the system type
 get_systype() = _systype[]
 
+# Abstract operator type
 abstract type AbstractOp end
 
+# Spin operator (e.g., X, iY, Z, CX, CZ)
 struct SpinOp <: AbstractOp
     name::Symbol
     loc::Union{Int, Tuple{Int, Int}}
 end
+# Construct a Spin operator
 Operator(name::Symbol, loc::Union{Int, Tuple{Int, Int}}, ::Val{:Spin}) = SpinOp(name, loc)
 
+# Sum of operators with coefficients
 mutable struct OpSum{T <: Number}
     covec::Vector{T}
     opvec::Vector{Vector{<:AbstractOp}}
 end
 
+# Convert tuple to list of SpinOps
 function os2ops(os::Tuple)
     len = length(os)
     ops = SpinOp[]
@@ -32,6 +41,7 @@ function os2ops(os::Tuple)
     return ops
 end
 
+# Construct OpSum from tuples and element type
 function OpSum(osvec::Vector{<:Tuple}, eltype::DataType)
     covec = Vector{eltype}()
     opvec = Vector{SpinOp}[]
@@ -43,12 +53,13 @@ function OpSum(osvec::Vector{<:Tuple}, eltype::DataType)
     return OpSum{eltype}(covec, opvec)
 end
 
+"""
+act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)₂
+|1⟩ = (1, 0)ᵀ = |↑⟩, |0⟩ = (0, 1)ᵀ = |↓⟩
+I do not specify the Y operator (has complex element) to keep type stability, but use iY instead.
+"""
+# Wait for later development on Fermion Operators
 @inline function act(op::SpinOp, bits::Int, T::DataType)
-    """
-    act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)₂
-    |1⟩ = (1, 0)ᵀ = |↑⟩, |0⟩ = (0, 1)ᵀ = |↓⟩
-    I do not specify the Y operator (has complex element) to keep type stability, but use iY instead.
-    """
     if op.name == :Z
         return bits, T(2 * readbit(bits, op.loc) - 1)
     elseif op.name == :X
@@ -70,7 +81,7 @@ end
     end
 end
 
-
+# Apply a sequence of operators to a bitstring
 function apply(coef::T, ops::Vector{<:AbstractOp}, bits::Int) where T <: Number
     element = coef
     newbits = bits
@@ -83,6 +94,7 @@ function apply(coef::T, ops::Vector{<:AbstractOp}, bits::Int) where T <: Number
     return newbits, element
 end
 
+# Build operator matrix in given basis
 function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::AbstractBasis; sparsed::Bool=true) where T <: Number
     dim = length(basis.bitsvec)
     opmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim)
@@ -96,29 +108,38 @@ function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::AbstractBasis; spars
     return opmat
 end
 
+# Apply operator(s) to a state and return new state
 function apply(ops::Vector{<:AbstractOp}, psi::AbstractState, coeff::Number=1.0)
     opmat = op2mat(coeff, ops, psi.basis)
     vector = opmat * psi.vector
     return State(psi.basis, vector)
 end
 
+# In-place apply operator(s) to a state
 function apply!(ops::Vector{<:AbstractOp}, psi::AbstractState, coeff::Number=1.0)
     opmat = op2mat(coeff, ops, psi.basis)
     lmul!(opmat, psi.vector)
 end
 
+# Compute expectation value of operator(s) in a state
 function expected(ops::Vector{<:AbstractOp}, psi::AbstractState, coeff::Number=1.0)
     opmat = op2mat(coeff, ops, psi.basis)
     v = psi.vector
     return real(v' * opmat * v)
 end
 
+# Compute ⟨x|O|y⟩ for two states and operator(s)
 function inner(x::S, ops::Vector{<:AbstractOp}, y::S, coeff::Number=1.0) where S <: AbstractState
     length(x.vector) == length(y.vector) || error("wrong dimension of two states!")
     opmat = op2mat(coeff, ops, y.basis)
     return x.vector' * opmat * y.vector
 end
 
+"""
+Construct the hamiltonian matrix from OpSum type with assigned basis.
+Return either dense or sparse matrix controled by sparsed, default to be dense
+because `eigen` in LinearAlgebra does not support sparse matrix.
+"""
 function makeHamiltonian(opsum::OpSum{T}, basis::AbstractBasis; sparsed::Bool=false) where T <: Number
     dim = length(basis.bitsvec)
     opnum = length(opsum.covec)
