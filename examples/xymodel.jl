@@ -4,6 +4,7 @@ if !isdefined(Main, :ExactDiagonalize)
     using .ExactDiagonalize
 end
 =#
+using Revise
 using ExactDiagonalize
 # For plotting
 using CairoMakie

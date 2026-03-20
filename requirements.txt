@@ -1,0 +1,23 @@
+# ExactDiagonalize.jl Package Requirements
+# 
+# This file documents the dependencies for the ExactDiagonalize package.
+# For Julia projects, dependencies are managed through Project.toml and Manifest.toml
+# Install with: using Pkg; Pkg.instantiate()
+
+# Core Dependencies
+LinearAlgebra >= 1.12.0        # Julia standard library - linear algebra operations
+SparseArrays >= 1.12.0         # Julia standard library - sparse matrix support
+
+# Package Dependencies
+CairoMakie >= 0.11             # Plotting and visualization
+HDF5 >= 0.17                   # HDF5 file I/O
+LaTeXStrings >= 1.3            # LaTeX string support for labels
+MKL >= 0.9.1                   # Intel Math Kernel Library for optimized BLAS/LAPACK
+StaticArrays >= 1.9            # Static array types for performance
+
+# Development Dependencies (optional)
+Revise >= 3.5                  # Interactive development - hot code reloading
+
+# System Requirements
+# - Julia >= 1.12
+# - For best performance, Intel MKL should be installed

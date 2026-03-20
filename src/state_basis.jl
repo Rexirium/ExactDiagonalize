@@ -30,11 +30,11 @@ struct NumBasis <: AbstractBasis
 end
 
 # Basis for all possible states (no conservation)
-struct TotalBasis <: AbstractBasis
+struct FullBasis <: AbstractBasis
     lsize::Int                  # system size
     bitsvec::UnitRange{<:Int}   # all bitstrings from 0 to 2^lsize-1
 
-    TotalBasis(lsize::Int) = new(lsize, 0 : (1 << lsize - 1))
+    FullBasis(lsize::Int) = new(lsize, 0 : (1 << lsize - 1))
 end
 
 # Find index of a bitstring in NumBasis (returns 0 if not in basis)
@@ -43,8 +43,8 @@ function findindex(basis::NumBasis, bits::Int)
     return searchsortedfirst(basis.bitsvec, bits)
 end
 
-# Find index of a bitstring in TotalBasis
-findindex(basis::TotalBasis, bits::Int) = bits + 1
+# Find index of a bitstring in FullBasis
+findindex(basis::FullBasis, bits::Int) = bits + 1
 
 
 #===========Particle number conserved state  ===========#
@@ -76,39 +76,39 @@ NumState(strvec::Vector{Symbol}; type::DataType=ComplexF64) =
     NumState(length(strvec), translate(strvec); type=type)
 
 #===============Generic and state================#
-mutable struct TotalState{T <: Number} <: AbstractState
-    basis::TotalBasis
+mutable struct FullState{T <: Number} <: AbstractState
+    basis::FullBasis
     vector::Vector{T}
 end
 
-function TotalState(lsize::Int, bits::Int; type::DataType=ComplexF64)
-    basis = TotalBasis(lsize)
+function FullState(lsize::Int, bits::Int; type::DataType=ComplexF64)
+    basis = FullBasis(lsize)
     vector = zeros(type, 1 << lsize)
     vector[bits + 1] = one(type)
-    TotalState{type}(basis, vector)
+    FullState{type}(basis, vector)
 end
 
-TotalState(statestr::String; type::DataType=ComplexF64) = 
-    TotalState(length(statestr), parse(Int, statestr; base=2); type=type)
+FullState(statestr::String; type::DataType=ComplexF64) = 
+    FullState(length(statestr), parse(Int, statestr; base=2); type=type)
 
-TotalState(strvec::Vector{:Symbol}; type::DataType=ComplexF64) = 
-    TotalState(length(strvec), translate(strvec); type=type)
+FullState(strvec::Vector{:Symbol}; type::DataType=ComplexF64) = 
+    FullState(length(strvec), translate(strvec); type=type)
 
 State(basis::NumBasis, vector::Vector{T}) where T <: Number = NumState{T}(basis, vector)
-State(basis::TotalBasis, vector::Vector{T}) where T <: Number = TotalState{T}(basis, vector)
+State(basis::FullBasis, vector::Vector{T}) where T <: Number = FullState{T}(basis, vector)
 
 #============Convertion between two basis=============#
-function TotalState(state::NumState{T}, lsize::Int) where T <: Number
+function FullState(state::NumState{T}, lsize::Int) where T <: Number
     lsize < state.basis.num && error("system size too small!")
-    basis = TotalBasis(lsize)
+    basis = FullBasis(lsize)
     vector = zeros(T, 1 << lsize)
     inds = state.basis.bitsvec
     vector[inds] .= state.vector
 
-    return TotalState{T}(basis, vector)
+    return FullState{T}(basis, vector)
 end
 
-function NumState(state::TotalState{T}, num::Int) where T <: Number
+function NumState(state::FullState{T}, num::Int) where T <: Number
     num > state.basis.lsize && error("too many particles")
     basis = NumBasis(state.basis.lsize, num)
     inds = basis.bitsvec
