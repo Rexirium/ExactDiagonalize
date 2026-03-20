@@ -1,17 +1,19 @@
-#
-using .ExactDiagonalize
+if !isdefined(Main, :ExactDiagonalize)
+    include("../src/ExactDiagonalize.jl")
+    using .ExactDiagonalize
+end
 using CairoMakie
 
 let 
     set_systype(:Spin)
     L, N = 10, 1
-    Δ = 0.5
+    Δ = 1.0
 
     init = NumState("1000000000")
     
     os = Tuple[]
-    for j in 1:L
-        nj = mod1(j + 1, L)
+    for j in 1:L-1
+        nj = j + 1
         push!(os, (Δ, :Z, j, :Z, nj))
         push!(os, (1.0, :X, j, :X, nj))
         push!(os, (-1.0, :iY, j, :iY, nj))
@@ -27,7 +29,7 @@ let
     #@show makeHamiltonian(ops2, init.basis)
     
     ts = 0.0:0.05:10.0
-    @time timeEvolve(opsum, init, ts, obs, exact())
+    @time timeEvolve(opsum, init, ts, obs)
 
     fig = Figure()
     ax = Axis(fig[1,1],
