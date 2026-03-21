@@ -53,7 +53,7 @@ function timeEvolve(ops::OpSum, init::AbstractState, ts::AbstractVector, obs::Ab
         phases .= complex.(cos.(t * eigs), - sin.(t * eigs))
         psi_trans .= phases .* init_trans
         mul!(psi, U, psi_trans)
-        record!(obs, psi, i)
+        record!(obs, psi, i + 1)
     end
     return State(init.basis, psi)
 end

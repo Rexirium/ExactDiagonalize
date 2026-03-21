@@ -126,10 +126,10 @@ src/
   ├── ExactDiagonalize.jl   # Main module
   ├── exactdiag.jl          # Diagonalization core functions
   ├── operators.jl          # Operator and Hamiltonian construction
-  ├── ode_solver.jl         # Time evolution (RK4)
-  ├── sparsemat.jl          # Sparse matrix utilities
+  ├── ode_solver.jl         # Time evolution by ODE (RK4)
+  ├── sparsemat.jl          # Sparse matrix multiplication method
   ├── state_basis.jl        # State and basis definitions
-  └── utils.jl              # Helper utilities
+  └── utils.jl              # Helper utilities for binary operations
 ```
 
 ## Contributing
