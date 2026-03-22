@@ -59,9 +59,9 @@ init = NumState("1000000000")
 opsum = OpSum(Float64)
 for j in 1:L
     nj = mod1(j + 1, L) # PBC
-    opsum += (Δ, :Z, j, :Z, nj)
-    opsum += (1.0, :X, j, :X, nj)
-    opsum += (-1.0, :iY, j, :iY, nj)
+    opsum += Δ, :Z, j, :Z, nj
+    opsum += 1.0, :X, j, :X, nj
+    opsum += -1.0, :iY, j, :iY, nj
 end
 
 # Define observable and time points
@@ -132,6 +132,11 @@ src/
   ├── state_basis.jl        # State and basis definitions
   └── utils.jl              # Helper utilities for binary operations
 ```
+
+## Acknowlegement
+
+- The motivation to develop this package comes from the homework of the course *Nonequilibrium Dynamics in Closed Quantum System* taught by HongZheng Zhao in the spring semester of 2026 at the School of Physics, Peking University.
+- The ideas of `OpSum` and `AbstractObserver` are inspired by the [ITensorMPS.jl](https://github.com/ITensor/ITensorMPS.jl) project by Matt Fishman (@mtfishman) and other developers.
 
 ## Contributing
 

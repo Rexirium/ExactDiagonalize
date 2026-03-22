@@ -24,13 +24,13 @@ using SparseArrays
         state_num = NumState(4, bits)
         @test state_num.basis.num == count_ones(bits)
         @test length(state_num.vector) == 6  # Hilbert space dimension for 2 particles
-        @test sum(abs.(state_num.vector)) ≈ 1.0  # Normalized
+        @test real(sum(abs.(state_num.vector))) ≈ 1.0  # Normalized
         
         # Test FullState creation
-        state_full = FullState(3, 0b101)
+        state_full = FullState(3, 5)
         @test state_full.basis.lsize == 3
         @test length(state_full.vector) == 8
-        @test state_full.vector[0b101 + 1] ≈ 1.0
+        @test state_full.vector[5 + 1] ≈ 1.0
         
         # Test NumState creation from binary string
         state_str = NumState("1010")

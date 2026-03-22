@@ -1,9 +1,3 @@
-#= Load ExactDiagonalize package if not already loaded
-if !isdefined(Main, :ExactDiagonalize)
-    include("../src/ExactDiagonalize.jl")
-    using .ExactDiagonalize
-end
-=#
 using Revise
 using ExactDiagonalize
 # For plotting
@@ -12,7 +6,7 @@ using CairoMakie
 let 
     set_systype(:Spin)  # Set system type to spin
     L, N = 10, 1        # System size and particle number
-    Δ = 1.0             # Interaction parameter
+    Δ = 2.0             # Interaction parameter
 
     # Initial state: single up spin at site 1
     init = NumState("1000000000")
@@ -21,9 +15,9 @@ let
     opsum = OpSum(Float64)
     for j in 1:L
         nj = mod1(j + 1, L)
-        opsum += (Δ, :Z, j, :Z, nj)
-        opsum += (1.0, :X, j, :X, nj)
-        opsum += (-1.0, :iY, j, :iY, nj)
+        opsum += Δ, :Z, j, :Z, nj
+        opsum += 1.0, :X, j, :X, nj
+        opsum += -1.0, :iY, j, :iY, nj
     end
 
     # opsum2: sum of Z operators (not used here)
@@ -35,7 +29,7 @@ let
     
     # Time points for evolution
     ts = 0.0:0.05:10.0
-    @time timeEvolve(opsum, init, ts, obs)
+    @time timeEvolve(opsum, init, ts, obs, rk4())
 
     # Plot observable vs time
     fig = Figure()
