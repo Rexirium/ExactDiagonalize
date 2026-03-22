@@ -31,7 +31,7 @@ end
 function timeEvolve(ops::OpSum, init::AbstractState, tf::Real)
     hmat = makeHamiltonian(ops, init.basis)
     eigs, U = eigen(Hermitian(hmat))
-    phases = complex.(cos.(tf * eigs), - sin.(tf * eigs))
+    phases = exp.( - im * tf * eigs)
     expEt = Diagonal(phases)
     final = U * expEt * U' * (init.vector)
     return State(init.basis, final)
@@ -50,7 +50,7 @@ function timeEvolve(ops::OpSum, init::AbstractState, ts::AbstractVector, obs::Ab
 
     record!(obs, psi, 1)
     for (i, t) in enumerate(ts[2:end])
-        phases .= complex.(cos.(t * eigs), - sin.(t * eigs))
+        phases .= exp.( - im * t * eigs)
         psi_trans .= phases .* init_trans
         mul!(psi, U, psi_trans)
         record!(obs, psi, i + 1)
