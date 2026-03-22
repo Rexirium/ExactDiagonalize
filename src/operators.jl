@@ -21,22 +21,25 @@ struct SpinOp <: AbstractOp
     name::Symbol
     loc::Union{UInt8, Tuple{UInt8, UInt8}}
 end
-# Construct a Spin operator
-Operator(name::Symbol, loc::Union{UInt8, Tuple{UInt8, UInt8}}, ::Val{:Spin}) = SpinOp(name, loc)
+
+# Decide which type of operator to take
+get_optype(::Val{:Spin}) = SpinOp
 
 # Sum of operators with coefficients
-mutable struct OpSum{T <: Number}
+mutable struct OpSum{T <: Number, OpT <: AbstractOp}
     covec::Vector{T}
-    opvec::Vector{Vector{<:AbstractOp}}
+    opvec::Vector{Vector{OpT}}
 end
+OpSum(T::DataType, OpT) = OpSum{T, OpT}(T[], Vector{OpT}[])
+OpSum(T::DataType) = OpSum(T, get_optype(_systype[]))
 
 # Convert tuple to list of SpinOps
-function os2ops(os::Tuple)
+function os2ops(os::Tuple, optype::DataType)
     len = length(os)
-    ops = SpinOp[]
+    ops = optype[]
     sizehint!(ops, len ÷ 2)
     for s in 2:2:len
-        push!(ops, Operator(os[s], os[s+1] .% UInt8, _systype[]))
+        push!(ops, optype(os[s], os[s+1] .% UInt8))
     end
     return ops
 end
@@ -44,15 +47,22 @@ end
 # Construct OpSum from tuples and element type
 function OpSum(osvec::Vector{<:Tuple}, eltype::DataType)
     covec = Vector{eltype}()
-    opvec = Vector{SpinOp}[]
+    optype = get_optype(_systype[])
+    opvec = Vector{optype}[]
+
     for os in osvec
-        ops = os2ops(os)
+        ops = os2ops(os, optype)
         push!(covec, os[1])
         push!(opvec, ops)
     end
-    return OpSum{eltype}(covec, opvec)
+    return OpSum{eltype, optype}(covec, opvec)
 end
 
+function Base.:+(opsum::OpSum{T, OpT}, os::Tuple) where{T <: Number, OpT <: AbstractOp}
+    push!(opsum.covec, os[1])
+    push!(opsum.opvec, os2ops(os, OpT))
+    opsum
+end
 """
 act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)₂
 |1⟩ = (1, 0)ᵀ = |↑⟩, |0⟩ = (0, 1)ᵀ = |↓⟩
@@ -166,7 +176,7 @@ mutable struct OperatorObserver{T <: Number} <: AbstractObserver
     data::Vector{Float64}
 
     OperatorObserver(os::Tuple, basis::AbstractBasis; sparsed::Bool=true) = new{typeof(os[1])}(
-        op2mat(os[1], os2ops(os), basis; sparsed=sparsed), Vector{Float64}()
+        op2mat(os[1], os2ops(os, get_optype(_systype[])), basis; sparsed=sparsed), Vector{Float64}()
     )
 end
 

@@ -18,15 +18,13 @@ let
     init = NumState("1000000000")
     
     # Build Hamiltonian terms for XY model
-    os = Tuple[]
+    opsum = OpSum(Float64)
     for j in 1:L
         nj = mod1(j + 1, L)
-        push!(os, (Δ, :Z, j, :Z, nj))
-        push!(os, (1.0, :X, j, :X, nj))
-        push!(os, (-1.0, :iY, j, :iY, nj))
+        opsum += (Δ, :Z, j, :Z, nj)
+        opsum += (1.0, :X, j, :X, nj)
+        opsum += (-1.0, :iY, j, :iY, nj)
     end
-    # push!(os, (1.0, :X, L))
-    opsum = OpSum(os, Float64)
 
     # opsum2: sum of Z operators (not used here)
     os2 = [(1.0, :Z, j) for j in 1:L]
