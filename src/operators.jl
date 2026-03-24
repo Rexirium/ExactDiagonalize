@@ -77,35 +77,35 @@ act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)�
 I do not specify the Y operator (has complex element) to keep type stability, but use iY instead.
 """
 # Wait for later development on Fermion Operators
-@inline function act(op::SpinOp, bits::Int, T::DataType)
+@inline function act(op::SpinOp, bits::UInt32)::Tuple{UInt32, Int}
     if op.name == :Z
-        return bits, T(2 * readbit(bits, op.loc) - 1)
+        return bits, 2 * readbit(bits, op.loc) - 1
     elseif op.name == :X
-        return flip(bits, op.loc), one(T)
+        return flip(bits, op.loc), 1
     elseif op.name == :iY # means simplectic matrix [0 1 ; -1 0] = iY
-        return flip(bits, op.loc), T(1 - 2 * readbit(bits, op.loc))
+        return flip(bits, op.loc), 1 - 2 * readbit(bits, op.loc)
     elseif op.name == :σp
-        return flip(bits, op.loc), T(! readbit(bits, op.loc))
+        return flip(bits, op.loc), Int(! readbit(bits, op.loc))
     elseif op.name == :σm
-        return flip(bits, op.loc), T(readbit(bits, op.loc))
+        return flip(bits, op.loc), Int(readbit(bits, op.loc))
     elseif op.name == :CX
         c, t = op.loc
-        return flip(bits, t, readbit(bits, c)), one(T)
+        return flip(bits, t, readbit(bits, c)), 1
     elseif op.name == :CZ
         b1, b2 = readbit(bits, minmax(op.loc...))
-        return bits, T(2 * (b1 ^ b2) - 1)
+        return bits, 2 * (b1 ^ b2) - 1
     else
         error("Operator not specified yet!")
     end
 end
 
 # Apply a sequence of operators to a bitstring
-function apply(coef::T, ops::Vector{<:AbstractOp}, bits::Int) where T <: Number
+function apply(coef::Number, ops::Vector{<:AbstractOp}, bits::UInt32)
     element = coef
     newbits = bits
 
     for op in ops
-        tmp = act(op, newbits, T)
+        tmp = act(op, newbits)
         newbits = tmp[1]
         element *= tmp[2]
     end

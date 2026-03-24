@@ -61,7 +61,7 @@ let
         color=cg[3], marker=:x, markersize=12)
     axislegend(ax, L"Δ = %$Δ")
     fig
-    save("homeworks/hw1/hw1_2a.png", fig)
+    # save("homeworks/hw1/hw1_2a.png", fig)
 
 end
 

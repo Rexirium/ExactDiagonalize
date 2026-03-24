@@ -60,8 +60,8 @@ let
     scatter!(ax, ts_spm[spm_idx], obs_spm.data[spm_idx], label="SPM", 
         color=cg[3], marker=:x, markersize=12)
     axislegend(ax, L"Δ = %$Δ")
-    #fig
-    save("homeworks/hw1/hw1_3b.png", fig)
+    fig
+    #save("homeworks/hw1/hw1_3b.png", fig)
 
 end
 

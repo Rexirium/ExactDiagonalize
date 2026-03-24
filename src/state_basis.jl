@@ -1,4 +1,3 @@
-
 # Abstract base types for basis and state representations
 abstract type AbstractBasis end
 abstract type AbstractState end
@@ -12,19 +11,19 @@ global bitDict = Dict{Symbol, Bool}(
 )
 
 # Convert a vector of symbols (e.g. [:Up, :Dn]) to an integer bitstring
-function translate(strvec::Vector{Symbol})::Int
-    bits = 0
+function translate(strvec::Vector{Symbol})::UInt32
+    bits = 0x00000
     for s in strvec
         bits |= bitDict[s]
-        bits <<= 1
+        bits <<= 0x01
     end
-    return bits >> 1
+    return bits >> 0x01
 end
 #===============Basis constructors=================#
 # Basis for states with fixed particle number (e.g. number of up spins)
 struct NumBasis <: AbstractBasis
     num::Int                # number of particles (ones)
-    bitsvec::Vector{<:Int}  # all basis states as bitstrings
+    bitsvec::Vector{UInt32}  # all basis states as bitstrings
 
     NumBasis(lsize::Int, num::Int) = new(num, numbitbasis(lsize, num))
 end
@@ -32,19 +31,19 @@ end
 # Basis for all possible states (no conservation)
 struct FullBasis <: AbstractBasis
     lsize::Int                  # system size
-    bitsvec::UnitRange{<:Int}   # all bitstrings from 0 to 2^lsize-1
+    bitsvec::UnitRange{UInt32}   # all bitstrings from 0 to 2^lsize-1
 
-    FullBasis(lsize::Int) = new(lsize, 0 : (1 << lsize - 1))
+    FullBasis(lsize::Int) = new(lsize, 0x00000 : (0x00001 << lsize % UInt8 - 0x00001))
 end
 
 # Find index of a bitstring in NumBasis (returns 0 if not in basis)
-function findindex(basis::NumBasis, bits::Int)
+function findindex(basis::NumBasis, bits::UInt32)::Int
     count_ones(bits) == basis.num || return 0
     return searchsortedfirst(basis.bitsvec, bits)
 end
 
 # Find index of a bitstring in FullBasis
-findindex(basis::FullBasis, bits::Int) = bits + 1
+findindex(basis::FullBasis, bits::UInt32)::Int = bits + 1
 
 
 #===========Particle number conserved state  ===========#
@@ -57,7 +56,7 @@ end
 
 
 # Create a NumState with a single basis state set to 1
-function NumState(lsize::Int, bits::Int; type::DataType=ComplexF64)
+function NumState(lsize::Int, bits::UInt32; type::DataType=ComplexF64)
     basis = NumBasis(lsize, count_ones(bits))
     vector = zeros(type, length(basis.bitsvec))
     idx = searchsortedfirst(basis.bitsvec, bits)
@@ -65,15 +64,14 @@ function NumState(lsize::Int, bits::Int; type::DataType=ComplexF64)
     NumState{type}(basis, vector)
 end
 
-
 # Create NumState from a binary string (e.g. "1010")
 NumState(statestr::String; type::DataType=ComplexF64) = 
-    NumState(length(statestr), parse(Int, statestr; base=2); type=type)
-
+    NumState(length(statestr), parse(UInt32, statestr; base=2); type=type)
 
 # Create NumState from a vector of symbols (e.g. [:Up, :Dn])
 NumState(strvec::Vector{Symbol}; type::DataType=ComplexF64) = 
     NumState(length(strvec), translate(strvec); type=type)
+
 
 #===============Generic and state================#
 mutable struct FullState{T <: Number} <: AbstractState
@@ -81,15 +79,15 @@ mutable struct FullState{T <: Number} <: AbstractState
     vector::Vector{T}
 end
 
-function FullState(lsize::Int, bits::Int; type::DataType=ComplexF64)
+function FullState(lsize::Int, bits::UInt32; type::DataType=ComplexF64)
     basis = FullBasis(lsize)
-    vector = zeros(type, 1 << lsize)
+    vector = zeros(type, length(basis.bitsvec))
     vector[bits + 1] = one(type)
     FullState{type}(basis, vector)
 end
 
 FullState(statestr::String; type::DataType=ComplexF64) = 
-    FullState(length(statestr), parse(Int, statestr; base=2); type=type)
+    FullState(length(statestr), parse(UInt32, statestr; base=2); type=type)
 
 FullState(strvec::Vector{:Symbol}; type::DataType=ComplexF64) = 
     FullState(length(strvec), translate(strvec); type=type)
@@ -101,7 +99,7 @@ State(basis::FullBasis, vector::Vector{T}) where T <: Number = FullState{T}(basi
 function FullState(state::NumState{T}, lsize::Int) where T <: Number
     lsize < state.basis.num && error("system size too small!")
     basis = FullBasis(lsize)
-    vector = zeros(T, 1 << lsize)
+    vector = zeros(T, length(basis.bitsvec))
     inds = state.basis.bitsvec
     vector[inds] .= state.vector
 
