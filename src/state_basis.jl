@@ -33,7 +33,7 @@ struct FullBasis <: AbstractBasis
     lsize::Int                  # system size
     bitsvec::UnitRange{UInt32}   # all bitstrings from 0 to 2^lsize-1
 
-    FullBasis(lsize::Int) = new(lsize, 0x00000 : (0x00001 << lsize % UInt8 - 0x00001))
+    FullBasis(lsize::Int) = new(lsize, 0x00000 : (0x00001 << lsize - 0x00001))
 end
 
 # Find index of a bitstring in NumBasis (returns 0 if not in basis)
@@ -89,7 +89,7 @@ end
 FullState(statestr::String; type::DataType=ComplexF64) = 
     FullState(length(statestr), parse(UInt32, statestr; base=2); type=type)
 
-FullState(strvec::Vector{:Symbol}; type::DataType=ComplexF64) = 
+FullState(strvec::Vector{Symbol}; type::DataType=ComplexF64) = 
     FullState(length(strvec), translate(strvec); type=type)
 
 State(basis::NumBasis, vector::Vector{T}) where T <: Number = NumState{T}(basis, vector)
