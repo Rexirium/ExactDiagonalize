@@ -20,12 +20,8 @@ let
         opsum += -1.0, :iY, j, :iY, nj
     end
 
-    # opsum2: sum of Z operators (not used here)
-    os2 = [(1.0, :Z, j) for j in 1:L]
-    opsum2 = OpSum(os2, Float64)
-
     # Observable: Z at last site
-    obs = OperatorObserver((1.0, :Z, L), init.basis)
+    obs = ZObserver(L, init.basis)
     
     # Time points for evolution
     ts = 0.0:0.05:10.0

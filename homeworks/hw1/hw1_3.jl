@@ -19,9 +19,9 @@ let
         opsum += (-1.0, :iY, j, :iY, nj)
     end
 
-    obs_exa = OperatorObserver((1.0, :Z, L), init.basis)
-    obs_ode = OperatorObserver((1.0, :Z, L), init.basis)
-    obs_spm = OperatorObserver((1.0, :Z, L), init.basis)
+    obs_exa = ZObserver(L, init.basis)
+    obs_ode = ZObserver(L, init.basis)
+    obs_spm = ZObserver(L, init.basis)
 
     ts_exa = 0.0:0.02:10.0
     ts_ode = 0.0:0.05:10.0

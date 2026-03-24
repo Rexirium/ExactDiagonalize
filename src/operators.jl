@@ -196,34 +196,3 @@ function inner(x::S, opsum::OpSum, y::S) where S <: AbstractState
     hmat = makeHamiltonian(opsum, y.basis; sparsed=true)
     return x.vector' * hmat * y.vector
 end
-
-#=============Obsrever system to record quantities during evolution=============#
-abstract type AbstractObserver end
-
-mutable struct OperatorObserver{T <: Number} <: AbstractObserver
-    opmat::SpMatrix{T}
-    data::Vector{Float64}
-
-    OperatorObserver(os::Tuple, basis::AbstractBasis; sparsed::Bool=true) = new{typeof(os[1])}(
-        op2mat(os[1], os2ops(os, get_optype(_systype[])), basis; sparsed=sparsed), Vector{Float64}()
-    )
-end
-
-function record!(obs::OperatorObserver, psi::AbstractVector, step::Int)
-    val = real(psi' * obs.opmat * psi)
-    push!(obs.data, val)
-end
-
-mutable struct OpSumObserver{T <: Number} <: AbstractObserver
-    opsmat::SpMatrix{T}
-    data::Vector{Float64}
-
-    OpSumObserver(ops::OpSum{T}, basis::AbstractBasis; sparsed::Bool=true) where T <: Number = new{T}(
-        makeHamiltonian(ops, basis; sparsed=sparsed), Vector{Float64}()
-    )
-end
-
-function record!(obs::OpSumObserver, psi::AbstractVector, step::Int)
-    val = real(psi' * obs.opsmat * psi)
-    push!(obs.data, val)
-end

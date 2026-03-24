@@ -25,7 +25,7 @@ Or add directly from the repository (**use this method for now**):
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/Rexirium/ExactDiagonalize")
+Pkg.add(url="https://github.com/Rexirium/ExactDiagonalize.jl")
 ```
 
 ### Requirements
@@ -65,7 +65,7 @@ for j in 1:L
 end
 
 # Define observable and time points
-obs = OperatorObserver((1.0, :Z, L), init.basis)
+obs = ZObserver(L, init.basis)
 ts = 0.0:0.05:10.0
 
 # Run time evolution
