@@ -20,14 +20,14 @@ using SparseArrays
 
     @testset "State Creation" begin
         # Test NumState creation from integer bits
-        bits = 10
+        bits = 0x0000a
         state_num = NumState(4, bits)
         @test state_num.basis.num == count_ones(bits)
         @test length(state_num.vector) == 6  # Hilbert space dimension for 2 particles
         @test real(sum(abs.(state_num.vector))) ≈ 1.0  # Normalized
         
         # Test FullState creation
-        state_full = FullState(3, 5)
+        state_full = FullState(3, 0x00005)
         @test state_full.basis.lsize == 3
         @test length(state_full.vector) == 8
         @test state_full.vector[5 + 1] ≈ 1.0
@@ -41,42 +41,42 @@ using SparseArrays
         @test state_full_str.basis.lsize == 3
         
         # Test state with different element types
-        state_complex = NumState(3, 0b110; type=ComplexF64)
+        state_complex = NumState(3, 0x00006; type=ComplexF64)
         @test eltype(state_complex.vector) == ComplexF64
     end
 
     @testset "Bit Manipulation Utilities" begin
         using ExactDiagonalize: readbit, flip, signbetween, splitbasis
         
-        bits = 0b1010
+        bits = 0x0000a
         
         # Test readbit for single position
-        @test readbit(bits, 1) == false  # bit 0 (1-based: position 1)
-        @test readbit(bits, 2) == true   # bit 1
-        @test readbit(bits, 3) == false  # bit 2
-        @test readbit(bits, 4) == true   # bit 3
+        @test readbit(bits, 0x01) == false  # bit 0 (1-based: position 1)
+        @test readbit(bits, 0x02) == true   # bit 1
+        @test readbit(bits, 0x03) == false  # bit 2
+        @test readbit(bits, 0x04) == true   # bit 3
         
         # Test readbit for tuple of positions
-        b1, b2 = readbit(bits, (1, 3))
+        b1, b2 = readbit(bits, (0x01, 0x03))
         @test b1 == false
         @test b2 == false
         
         # Test flip single bit
-        flipped = flip(bits, 1)
-        @test readbit(flipped, 1) == true
+        flipped = flip(bits, 0x01)
+        @test readbit(flipped, 0x01) == true
         
         # Test flip with boolean
-        flipped_cond = flip(bits, 2, false)
-        @test readbit(flipped_cond, 2) == false
+        flipped_cond = flip(bits, 0x02, false)
+        @test readbit(flipped_cond, 0x02) == true
         
         # Test sign between bits
-        sign_val = signbetween(0b1110, 1, 4)  # ones between positions 1 and 4
+        sign_val = signbetween(0x0000e, 0x01, 0x04)  # ones between positions 1 and 4
         @test sign_val isa Int
         
         # Test splitbasis
-        right, left = splitbasis(0b11010, 2)
-        @test right == 0b10
-        @test left == 0b111
+        right, left = splitbasis(0x00001a, 0x02)
+        @test right == 0b010
+        @test left == 0b110
     end
 
     @testset "Operator Construction" begin
@@ -90,7 +90,7 @@ using SparseArrays
         # Test two-qubit operator
         op_cx = SpinOp(:CX, (1, 2))
         @test op_cx.name == :CX
-        @test op_cx.loc == (1, 2)
+        @test op_cx.loc == (0x01, 0x02)
         
         # Test OpSum construction
         operators = [

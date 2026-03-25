@@ -20,6 +20,8 @@ abstract type AbstractOp end
 struct SpinOp <: AbstractOp
     name::Symbol
     loc::Union{UInt8, Tuple{UInt8, UInt8}}
+
+    SpinOp(name::Symbol, loc::Union{<:Int, Tuple{<:Int, <:Int}}) = new(name, loc .% UInt8)
 end
 
 # Decide which type of operator to take
@@ -39,7 +41,7 @@ function os2ops(os::Tuple, optype::DataType)
     ops = optype[]
     sizehint!(ops, len ÷ 2)
     for s in 2:2:len
-        push!(ops, optype(os[s], os[s+1] .% UInt8))
+        push!(ops, optype(os[s], os[s+1]))
     end
     return ops
 end

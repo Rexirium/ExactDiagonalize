@@ -10,12 +10,13 @@ let
     init = FullState(fill(:Dn, L))
 
     opsum = OpSum(Float64)
-    for j in 1:L
-        opsum += -1.0, :Z, j, :Z, mod1(j+1, L)
+    for j in 1:L-1
+        opsum += -1.0, :Z, j, :Z, j + 1
         opsum += -B, :X, j
     end
+    opsum += -B, :X, L
 
-    obs = ZObserver(L, init.basis)
+    obs = ZObserver(L ÷ 2, init.basis)
 
     ts = 0.0:0.02:10.0
     @time timeEvolve(opsum, init, ts, obs, exact())
