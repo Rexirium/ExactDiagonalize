@@ -118,6 +118,7 @@ end
 function LinearAlgebra.normalize!(psi::AbstractState)
     LinearAlgebra.normalize!(psi.vector)
 end
+LinearAlgebra.norm(psi::AbstractState) = LinearAlgebra.norm(psi.vector)
 
 function inner(x::S, y::S) where S <: AbstractState
     length(x.vector) == length(y.vector) || error("wrong dimension of two states!")

@@ -1,5 +1,4 @@
 using Test
-using Revise
 using ExactDiagonalize
 using LinearAlgebra
 using SparseArrays
@@ -101,6 +100,9 @@ using SparseArrays
         @test length(ops_sum.covec) == 2
         @test ops_sum.covec[1] ≈ 1.0
         @test ops_sum.covec[2] ≈ 0.5
+
+        ops_sum += (0.5, :X, 2)
+        @test ops_sum.opvec[3][1].name == :X
     end
 
     @testset "System Type Configuration" begin
@@ -116,11 +118,10 @@ using SparseArrays
         set_systype(:Spin)
         
         # Create simple Ising model: H = Z_0 Z_1 + 0.5 X_1
-        operators = [
-            (1.0, :Z, 1, :Z, 2),
-            (0.5, :X, 2)
-        ]
-        ops_sum = OpSum(operators, ComplexF64)
+        ops_sum = OpSum(Float64)
+        ops_sum += 1.0, :Z, 1, :Z, 2
+        ops_sum += 0.5, :X, 1
+        ops_sum += 0.5, :X, 2
         
         # Test with FullBasis
         basis = FullBasis(2)
@@ -167,15 +168,15 @@ using SparseArrays
         psi[1] = 1.0
         
         # Test OperatorObserver
-        ops_list = [OpSum([(1.0, :Z, 1)], ComplexF64)]
-        obs = OperatorObserver(ops_list)
+        ops_list = (1.0, :Z, 1)
+        obs = OperatorObserver(ops_list, FullBasis(2))
         
-        @test length(obs.measured) == 1
+        @test length(obs.data) == 0
         
         # Record a measurement
         record!(obs, psi, 1)
-        @test length(obs.times) == 1
-        @test obs.times[1] == 1
+        @test length(obs.data) == 1
+        @test obs.data[1] == -1
     end
 
     @testset "Time Evolution: Exact Diagonalization" begin
@@ -188,95 +189,95 @@ using SparseArrays
         ops_sum = OpSum(operators, ComplexF64)
         
         # Initial state
-        init_state = FullState(2, 0b00)
+        init_state = FullState(2, 0x00000)
         
         # Evolve to short time
         tf = 0.1
         final_state = timeEvolve(ops_sum, init_state, tf)
         
         @test length(final_state.vector) == length(init_state.vector)
-        @test norm(final_state.vector) ≈ norm(init_state.vector)  # Norm preserved
+        @test norm(final_state) ≈ norm(init_state) atol = 1e-14 # Norm preserved
     end
 
     @testset "Time Evolution: RK4 Method" begin
         set_systype(:Spin)
         
         operators = [
-            (1.0, :Z, 1)
+            (1.0, :Z, 1, :Z, 2)
         ]
         ops_sum = OpSum(operators, ComplexF64)
         
-        init_state = FullState(2, 0b00)
-        times = [0.0, 0.1, 0.2]
-        obs = OperatorObserver([ops_sum])
+        init_state = FullState(2, 0x00000)
+        times = [0.0, 0.01, 0.02]
+        obs = ZObserver(1, init_state.basis)
         
         final_state = timeEvolve(ops_sum, init_state, times, obs, rk4())
         
         @test length(final_state.vector) == 4
-        @test norm(final_state.vector) ≈ 1.0 atol=1e-10
-        @test length(obs.times) == 3
+        @test norm(final_state) ≈ 1.0 atol = 1e-10
+        @test length(obs.data) == 3
     end
 
     @testset "Time Evolution: Sparse Matrix Method" begin
         set_systype(:Spin)
         
         operators = [
-            (1.0, :Z, 1)
+            (1.0, :Z, 1, :Z, 2)
         ]
         ops_sum = OpSum(operators, ComplexF64)
         
-        init_state = FullState(2, 0b01)
-        times = [0.0, 0.1, 0.2]
-        obs = OperatorObserver([ops_sum])
+        init_state = FullState(2, 0x00001)
+        times = [0.0, 0.01, 0.02]
+        obs = XObserver(1, init_state.basis)
         
         final_state = timeEvolve(ops_sum, init_state, times, obs, spmat())
         
         @test length(final_state.vector) == 4
-        @test norm(final_state.vector) ≈ 1.0 atol=1e-10
-        @test length(obs.times) == 3
+        @test norm(final_state) ≈ 1.0 atol=1e-10
+        @test length(obs.data) == 3
     end
 
     @testset "Spin Operators Acting on Basis" begin
         set_systype(:Spin)
-        using ExactDiagonalize: act
         
         # Test Z operator
-        bits = 0b101
-        new_bits, element = act(SpinOp(:Z, 1), bits, ComplexF64)
+        bits = 0x00005
+        new_bits, element = act(SpinOp(:Z, 1), bits)
         @test new_bits == bits  # Z doesn't change the state
-        @test element ∈ (1.0, -1.0)  # Z eigenvalues
+        @test element ∈ (1, -1)  # Z eigenvalues
         
         # Test X operator
-        bits = 0b101
-        new_bits, element = act(SpinOp(:X, 1), bits, ComplexF64)
-        @test new_bits == flip(bits, 1)  # X flips the bit
-        @test element == 1.0
+        bits = 0x00005
+        new_bits, element = act(SpinOp(:X, 1), bits)
+        @test new_bits == flip(bits, 0x01)  # X flips the bit
+        @test element == 1
         
         # Test iY operator  
-        bits = 0b101
-        new_bits, element = act(SpinOp(:iY, 1), bits, ComplexF64)
-        @test new_bits == flip(bits, 1)
+        bits = 0x00005
+        new_bits, element = act(SpinOp(:iY, 1), bits)
+        @test new_bits == flip(bits, 0x01)
+        @test element == -1
         
         # Test sigma plus operator
-        bits = 0b101
-        new_bits, element = act(SpinOp(:σp, 1), bits, ComplexF64)
-        @test new_bits == flip(bits, 1)
+        bits = 0x00005
+        new_bits, element = act(SpinOp(:σp, 1), bits)
+        @test element == 0
         
         # Test sigma minus operator
-        bits = 0b101
-        new_bits, element = act(SpinOp(:σm, 1), bits, ComplexF64)
-        @test new_bits == flip(bits, 1)
+        bits = 0x00005
+        new_bits, element = act(SpinOp(:σm, 1), bits)
+        @test new_bits == flip(bits, 0x01)
         
         # Test CX operator
-        bits = 0b11
-        new_bits, element = act(SpinOp(:CX, (1, 2)), bits, ComplexF64)
-        @test element == 1.0
+        bits = 0x00003
+        new_bits, element = act(SpinOp(:CX, (1, 2)), bits)
+        @test element == 1
         
         # Test CZ operator
-        bits = 0b11
-        new_bits, element = act(SpinOp(:CZ, (1, 2)), bits, ComplexF64)
+        bits = 0x00003
+        new_bits, element = act(SpinOp(:CZ, (1, 2)), bits)
         @test new_bits == bits
-        @test element ∈ (1.0, -1.0)
+        @test element ∈ (1, -1)
     end
 
     @testset "State Index Lookup" begin
@@ -284,17 +285,17 @@ using SparseArrays
         
         # Test findindex for NumBasis
         basis = NumBasis(4, 2)
-        idx = findindex(basis, 0b0011)
-        @test idx > 0
+        idx = findindex(basis, 0x00003)
+        @test idx == 1
         
         # Test with invalid state (wrong particle number)
-        idx_invalid = findindex(basis, 0b0001)
+        idx_invalid = findindex(basis, 0x00001)
         @test idx_invalid == 0
         
         # Test findindex for FullBasis
         basis_full = FullBasis(3)
-        idx_full = findindex(basis_full, 0b101)
-        @test idx_full == 0b101 + 1
+        idx_full = findindex(basis_full, 0x00005)
+        @test idx_full == 0x00005 + 1
     end
 
 end
