@@ -1,8 +1,8 @@
 module ExactDiagonalize
 
 using MKL, LinearAlgebra
-import SparseArrays: spzeros
-import SparseArrays: SparseMatrixCSC as SpMatrix
+using SparseArrays: spzeros
+using SparseArrays: SparseMatrixCSC as SpMatrix
 
 include("operators.jl")
 include("observers.jl")
@@ -17,4 +17,4 @@ export act, apply, apply!, expected, inner
 export AbstractObserver, OperatorObserver, OpSumObserver, ZObserver, XObserver, record!
 export spectrum, exact, rk4, spmat, timeEvolve
 
-end
+end # ExactDiagonalize
