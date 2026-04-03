@@ -87,8 +87,7 @@ function plot_graphene_edgestates(Ly::Int, kxs::Vector{<:Real}, sitetype::String
         end
         axislegend(ax; position=:ct)
     end
-    fig
-    
+    fig   
 end
 
 function plot_graphene_spectrum(Ly::Int, nkx::Int, sitetype::String) 
@@ -112,7 +111,6 @@ function plot_graphene_spectrum(Ly::Int, nkx::Int, sitetype::String)
     vlines!(ax, [2π / 3], color=:red, linestyle=:dash)
     vlines!(ax, [4π / 3], color=:red, linestyle=:dash)
     fig
-
 end
 
 let 
@@ -124,6 +122,23 @@ let
         xlabelsize = 18,
         ylabelsize = 18,
     ))
+    fig1 = plot_graphene_spectrum(50, 200, "A")
+    save("examples/figures/spectrum_AB.png", fig1)
+    fig2 = plot_graphene_edgestates(50, [1.0, 1.1, 1.2], "A")
+    save("examples/figures/edgestates_AB.png", fig2)
 
-    plot_graphene_spectrum(100, 200, "A")
+    fig1 = plot_graphene_spectrum(50, 200, "B")
+    save("examples/figures/spectrum_BA.png", fig1)
+    fig2 = plot_graphene_edgestates(50, [0.0, 0.1, 0.2], "B")
+    save("examples/figures/edgestates_BA.png", fig2)
+
+    fig1 = plot_graphene_spectrum(49, 200, "A")
+    save("examples/figures/spectrum_AA.png", fig1)
+    fig2 = plot_graphene_edgestates(49, [1.0, 1.1, 1.2], "A")
+    save("examples/figures/edgestates_AA.png", fig2)
+
+    fig1 = plot_graphene_spectrum(49, 200, "B")
+    save("examples/figures/spectrum_BB.png", fig1)
+    fig2 = plot_graphene_edgestates(49, [1.0, 1.1, 1.2], "B")
+    save("examples/figures/edgestates_BB.png", fig2)
 end
