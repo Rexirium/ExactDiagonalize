@@ -69,21 +69,12 @@ function get_edgestates(H::Tridiagonal{S}) where S <: Number
         return zeros(S, size(H, 1), 2)
     end 
 end
-#=
-let 
-    Ly = 50
-    kxs = [1.0, 1.1, 1.2]
 
-    set_theme!(Axis=(
-        xtickalign = 1,
-        ytickalign = 1,
-        xlabelsize = 18,
-        ylabelsize = 18,
-    ))
+function plot_graphene_edgestates(Ly::Int, kxs::Vector{<:Real}, sitetype::String) 
     fig = Figure(size=(800, 900))
 
     for (row, kxc) in enumerate(kxs)
-        H = makeGrapheneHamiltonian(1.0, kxc * π, Ly)
+        H = makeGrapheneHamiltonian(1.0, kxc * π, Ly; sitetype=sitetype)
         edgestates = get_edgestates(H)
         ax = Axis(fig[row, 1], 
             title="Graphene Edge States at kₓaₓ = $(kxc)π", 
@@ -99,35 +90,40 @@ let
     fig
     
 end
-=#
-let 
-    Ly = 49
-    nkx = 500
+
+function plot_graphene_spectrum(Ly::Int, nkx::Int, sitetype::String) 
     kxs = range(0, 2π, nkx)
     spectra = Matrix{Float64}(undef, Ly, nkx)
-    H = makeGrapheneHamiltonian(1.0, 0.0, Ly; sitetype="B")
+    H = makeGrapheneHamiltonian(1.0, 0.0, Ly; sitetype=sitetype)
     for (i, kx) in enumerate(kxs)
-        updateGrapheneHamiltonian!(H, 1.0, kx; sitetype="B")
+        updateGrapheneHamiltonian!(H, 1.0, kx; sitetype=sitetype)
         spectra[:, i] = eigvals(H)
     end
 
-    set_theme!(Axis=(
-        xtickalign = 1,
-        ytickalign = 1,
-        xlabelsize = 18,
-        ylabelsize = 18,
-    ))
-    fig = Figure()
+    fig = Figure(size=(800, 600))
     ax = Axis(fig[1, 1], title="Graphene Spectrum", 
         xlabel=L"k_x a_x", ylabel=L"E", 
         xticks=(0 : π/2 : 2π, [L"0", L"π/2", L"π", L"3π/2", L"2π"])
     )
 
     for j in 1:Ly
-        lines!(ax, kxs, spectra[j, :], color=:black)
+        lines!(ax, kxs, spectra[j, :], color=:black, linewidth=1)
     end
     vlines!(ax, [2π / 3], color=:red, linestyle=:dash)
     vlines!(ax, [4π / 3], color=:red, linestyle=:dash)
     fig
 
+end
+
+let 
+    set_theme!(Axis=(
+        xtickalign = 1,
+        ytickalign = 1,
+        xticklabelsize = 16,
+        yticklabelsize = 16,
+        xlabelsize = 18,
+        ylabelsize = 18,
+    ))
+
+    plot_graphene_spectrum(100, 200, "A")
 end
