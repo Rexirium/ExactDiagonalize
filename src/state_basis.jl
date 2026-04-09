@@ -41,7 +41,7 @@ SpinBasis(lsize::Int, num::Int) = NumBasis(lsize, num)
 
 # Find index of a bitstring in NumBasis (returns 0 if not in basis)
 function findindex(basis::NumBasis, bits::UInt32)::Int
-    count_ones(bits) == basis.num || return 0
+    count_ones(bits) == basis.num || return length(basis.bitsvec) + 1  # if number of ones doesn't match, return out of bounds index
     return searchsortedfirst(basis.bitsvec, bits)
 end
 
@@ -66,7 +66,7 @@ function QState(lsize::Int, num::Int, bits::UInt32; type::DataType=ComplexF64)
     basis = NumBasis(lsize, num)
     vector = zeros(type, length(basis.bitsvec))
     idx = findindex(basis, bits)
-    idx == 0 && error("bitstring not in basis!")
+    idx > length(basis.bitsvec) && error("bitstring not in basis!")
     vector[idx] = one(type)  # default to first basis state
     QState{type}(basis, vector)
 end

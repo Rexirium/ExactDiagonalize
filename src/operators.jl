@@ -122,7 +122,7 @@ function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::AbstractBasis; spars
     for (j, bits) in enumerate(basis.bitsvec)
         newbits, element = apply(coeff, ops, bits)
         i = findindex(basis, newbits)
-        (i <= 0 || iszero(element)) && continue
+        (i > dim || iszero(element)) && continue
         opmat[i, j] += element
     end
     return opmat
@@ -171,7 +171,7 @@ function makeHamiltonian(opsum::OpSum{T}, basis::AbstractBasis; sparsed::Bool=fa
         for s in 1:opnum
             newbits, element = apply(covec[s], opvec[s], bits)
             i = findindex(basis, newbits)
-            (i <= 0 || iszero(element)) && continue
+            (i > dim || iszero(element)) && continue
             hmat[i, j] += element
         end
     end

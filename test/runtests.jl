@@ -290,7 +290,7 @@ using SparseArrays
         
         # Test with invalid state (wrong particle number)
         idx_invalid = findindex(basis, 0x00001)
-        @test idx_invalid == 0
+        @test idx_invalid == length(basis.bitsvec) + 1
         
         # Test findindex for FullBasis
         basis_full = FullBasis(3)
