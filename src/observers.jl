@@ -33,7 +33,7 @@ mutable struct ZObserver <: AbstractObserver
     phases::Vector{Int}
     data::Vector{Float64}
 
-    ZObserver(loc::Int, basis::AbstractBasis) = new(
+    ZObserver(loc::Int, basis::SpinBasis) = new(
         2 .* readbit.(basis.bitsvec, loc % UInt8) .- 1, 
         Vector{Float64}()
     )
@@ -50,7 +50,7 @@ mutable struct XObserver <: AbstractObserver
     idx1::Vector{Int}
     data::Vector{Float64}
 
-    function XObserver(loc::Int, basis::FullBasis)
+    function XObserver(loc::Int, basis::SpinBasis)
         mask = readbit.(basis.bitsvec, loc % UInt8)
         new(basis.bitsvec[.! mask] .+ 1, basis.bitsvec[mask] .+ 1, Vector{Float64}())
     end

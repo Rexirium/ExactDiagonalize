@@ -5,11 +5,11 @@ using CairoMakie
 
 let 
     set_systype(:Spin)  # Set system type to spin
-    L, N = 12, 6     # System size and particle number
+    L, N = 10, 1    # System size and particle number
     Δ = 1.0            # Interaction parameter
 
     # Initial state: Neel state
-    init = QState([isodd(j) ? :Up : :Dn for j in 1:L], N)
+    init = QState("1000000000"; num = N)
     
     # Build Hamiltonian terms for XXZ model
     opsum = OpSum(Float64)

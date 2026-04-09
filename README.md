@@ -53,7 +53,7 @@ L, N = 10, 1  # System size and particle number
 Δ = 1.0       # Interaction strength
 
 # Initial state: single excitation at site 1
-init = QState("1000000000", 1)
+init = QState("1000000000"; num=1)
 
 # Build XY Hamiltonian
 opsum = OpSum(Float64)
@@ -80,8 +80,6 @@ timeEvolve(opsum, init, ts, obs)
 
 - **`QState`**: Quantum state defined with basis and coefficient vector
 - **`SpinBasis`**: Basis for spin one-half system
-- **`FullBasis`**: Basis defined on full dimension of Hilbert space (avoid using it when possible)
-- **`NumBasis`**: Basis constrained with fixed particle number occupation or total spin
 
 ### Operators
 

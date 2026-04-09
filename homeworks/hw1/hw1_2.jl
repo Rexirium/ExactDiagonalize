@@ -8,7 +8,7 @@ let
     Δ = 1.0         # Interaction parameter
 
     # Initial state: single up spin at site 1
-    init = QState("1000000000", N)
+    init = QState("1000000000"; num = N)
     
     # Build Hamiltonian terms for XY model
     opsum = OpSum(Float64)

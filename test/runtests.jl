@@ -6,13 +6,13 @@ using SparseArrays
 @testset "ExactDiagonalize.jl Tests" begin
 
     @testset "Basis Construction" begin
-        # Test NumBasis for fixed particle number
-        basis_num = NumBasis(4, 2)
+        # Test SpinBasis for fixed particle number
+        basis_num = SpinBasis(4; num=2)
         @test basis_num.num == 2
         @test length(basis_num.bitsvec) == 6  # C(4,2) = 6
         
-        # Test FullBasis for all states
-        basis_full = FullBasis(3)
+        # Test Full dimension SpinBasis for all states
+        basis_full = SpinBasis(3)
         @test basis_full.lsize == 3
         @test length(basis_full.bitsvec) == 8  # 2^3 = 8
     end
@@ -20,7 +20,7 @@ using SparseArrays
     @testset "State Creation" begin
         # Test QState creation from integer bits
         bits = 0x0000a
-        state_num = QState(4, 2, bits)
+        state_num = QState(4, bits; num=2)
         @test state_num.basis.num == count_ones(bits)
         @test length(state_num.vector) == 6  # Hilbert space dimension for 2 particles
         @test real(sum(abs.(state_num.vector))) ≈ 1.0  # Normalized
@@ -32,7 +32,7 @@ using SparseArrays
         @test state_full.vector[5 + 1] ≈ 1.0
         
         # Test QState creation from binary string
-        state_str = QState("1010", 2)
+        state_str = QState("1010"; num = 2)
         @test state_str.basis.num == 2
         
         # Test full dimension State creation from binary string
@@ -40,7 +40,7 @@ using SparseArrays
         @test state_full_str.basis.lsize == 3
         
         # Test state with different element types
-        state_complex = QState(3, 2, 0x00006; type=ComplexF64)
+        state_complex = QState(3, 0x00006; num=2, type=ComplexF64)
         @test eltype(state_complex.vector) == ComplexF64
     end
 
@@ -123,14 +123,14 @@ using SparseArrays
         ops_sum += 0.5, :X, 1
         ops_sum += 0.5, :X, 2
         
-        # Test with FullBasis
-        basis = FullBasis(2)
+        # Test with Full dimension SpinBasis
+        basis = SpinBasis(2)
         hmat = makeHamiltonian(ops_sum, basis)
         @test size(hmat) == (4, 4)
         @test ishermitian(hmat)
         
-        # Test with NumBasis
-        basis_num = NumBasis(3, 1)
+        # Test with fixed number SpinBasis
+        basis_num = SpinBasis(3; num=1)
         hmat_num = makeHamiltonian(ops_sum, basis_num)
         @test size(hmat_num)[1] == length(basis_num.bitsvec)
     end
@@ -146,8 +146,8 @@ using SparseArrays
         ]
         ops_sum = OpSum(operators, ComplexF64)
         
-        # Test spectrum with FullBasis
-        basis = FullBasis(2)
+        # Test spectrum with Full dimension SpinBasis
+        basis = SpinBasis(2)
         eigs = spectrum(ops_sum, basis)
         @test length(eigs) == 4
         @test all(isreal, eigs)  # Eigenvalues of Hermitian matrix are real
@@ -169,7 +169,7 @@ using SparseArrays
         
         # Test OperatorObserver
         ops_list = (1.0, :Z, 1)
-        obs = OperatorObserver(ops_list, FullBasis(2))
+        obs = OperatorObserver(ops_list, SpinBasis(2))
         
         @test length(obs.data) == 0
         
@@ -283,8 +283,8 @@ using SparseArrays
     @testset "State Index Lookup" begin
         using ExactDiagonalize: findindex
         
-        # Test findindex for NumBasis
-        basis = NumBasis(4, 2)
+        # Test findindex for fixed number SpinBasis
+        basis = SpinBasis(4; num=2)
         idx = findindex(basis, 0x00003)
         @test idx == 1
         
@@ -292,8 +292,8 @@ using SparseArrays
         idx_invalid = findindex(basis, 0x00001)
         @test idx_invalid == length(basis.bitsvec) + 1
         
-        # Test findindex for FullBasis
-        basis_full = FullBasis(3)
+        # Test findindex for Full dimension SpinBasis
+        basis_full = SpinBasis(3)
         idx_full = findindex(basis_full, 0x00005)
         @test idx_full == 0x00005 + 1
     end

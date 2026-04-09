@@ -1,85 +1,101 @@
+# ============================================================================
+# STATE AND BASIS REPRESENTATIONS FOR QUANTUM MANY-BODY SYSTEMS
+# ============================================================================
+# This module defines the core data structures for representing quantum states
+# and bases in exact diagonalization calculations. It supports both full and
+# number-conserving (fixed particle number) bases for spin or fermionic systems.
+
 # Abstract base types for basis and state representations
 abstract type AbstractBasis end
 
-# Dictionary mapping spin or occupation symbols to bit values
+# ============================================================================
+# SYMBOL-TO-BIT MAPPING
+# ============================================================================
+# Dictionary mapping spin or occupation symbols to bit values used internally
+# for efficient bitstring representation of quantum states.
+# Symbols: :Up/Dn (spins), :Occ/Emp (occupation)
 global bitDict = Dict{Symbol, Bool}(
-    :Up => true, 
-    :Dn => false,
-    :Occ => true,
-    :Emp => false
+    :Up => true,  # Spin up or occupied state
+    :Dn => false,  # Spin down or empty state
+    :Occ => true,  # Occupied state (fermionic)
+    :Emp => false  # Empty state (fermionic)
 )
 
 # Convert a vector of symbols (e.g. [:Up, :Dn]) to an integer bitstring
 function symbol2bits(strvec::Vector{Symbol})::UInt32
+    length(strvec) <= 32 || error("System size too large for UInt32 representation")
     bits = 0x00000
     for s in strvec
-        bits |= bitDict[s]
-        bits <<= 0x01
+        bits |= bitDict[s]  # Set bit for current symbol
+        bits <<= 0x01        # Shift left for next symbol
     end
-    return bits >> 0x01
+    return bits >> 0x01      # Remove final unnecessary shift
 end
 
-#===============Basis constructors=================#
-# Basis for states with fixed particle number (e.g. number of up spins)
-struct NumBasis <: AbstractBasis
-    num::Int                # number of particles (ones)
-    bitsvec::Vector{UInt32}  # all basis states as bitstrings
-
-    NumBasis(lsize::Int, num::Int) = new(num, numbitbasis(lsize, num))
+# ============================================================================
+# BASIS DEFINITIONS AND CONSTRUCTORS
+# ============================================================================
+# Consstruct basis for 1D spin system
+struct SpinBasis{N, K, V <: AbstractVector{UInt32}} <: AbstractBasis
+    lsize::Int
+    num::N # total spin up numbers
+    kint::K # momentum sector label, i.e. `m` in  k = 2πm/L
+    bitsvec::V
 end
 
-# Basis for all possible states (no conservation)
-struct FullBasis <: AbstractBasis
-    lsize::Int                  # system size
-    bitsvec::UnitRange{UInt32}   # all bitstrings from 0 to 2^lsize-1
-
-    FullBasis(lsize::Int) = new(lsize, 0x00000 : (0x00001 << lsize - 0x00001))
+function SpinBasis(lsize::Int; num = nothing, kint = nothing)
+    if isnothing(num) && isnothing(kint)
+        # full basis use UnitRange to save memory
+        bitsvec = 0x00000 : ((0x00001 << lsize) - 0x00001)
+    elseif !isnothing(num) && isnothing(kint)
+        # Generate bits vector with fixed `1` s
+        bitsvec = numbitbasis(lsize, num)
+    else
+        error("Invalid basis type, wait for later development.")
+    end
+    
+    return SpinBasis(lsize, num, kint, bitsvec)
 end
 
-SpinBasis(lsize::Int) = FullBasis(lsize)
-SpinBasis(lsize::Int, num::Int) = NumBasis(lsize, num)
-
-# Find index of a bitstring in NumBasis (returns 0 if not in basis)
-function findindex(basis::NumBasis, bits::UInt32)::Int
+Base.:(==)(b1::SpinBasis, b2::SpinBasis) = 
+    (b1.lsize == b2.lsize) && (b1.num == b2.num) && (b1.kint == b2.kint)
+# find index of a product state in general basis
+function findindex(basis::SpinBasis{Nothing, Nothing}, bits::UInt32)::Int
+    return Int(bits) + 1
+end
+# find index of a product state in number conserving basis
+function findindex(basis::SpinBasis{Int, Nothing}, bits::UInt32)::Int
     count_ones(bits) == basis.num || return length(basis.bitsvec) + 1  # if number of ones doesn't match, return out of bounds index
     return searchsortedfirst(basis.bitsvec, bits)
 end
+# find index of a product state in other basis
+function findindex(basis::SpinBasis{Int, Int}, bits::UInt32)::Int
+    return searchsortedfirst(basis.bitsvec, bits)
+end
 
-# Find index of a bitstring in FullBasis
-findindex(basis::FullBasis, bits::UInt32)::Int = bits + 1
-
-
-#================== Quantum State ===================#
-mutable struct QState{T <: Number}
+# ============================================================================
+# QUANTUM STATE CONSTRUCTORS
+# ============================================================================
+# Construct the Quantum state with basis and coefficient vector
+struct QState{T <: Number}
     basis::AbstractBasis
     vector::Vector{T}
 end
 
-function QState(lsize::Int, bits::UInt32; type::DataType=ComplexF64)
-    basis = FullBasis(lsize)
+function QState(lsize::Int, bits::UInt32; num = nothing, kint = nothing, type::DataType = ComplexF64)
+    basis = SpinBasis(lsize; num = num, kint = kint)
     vector = zeros(type, length(basis.bitsvec))
-    vector[bits + 1] = one(type)
-    QState{type}(basis, vector)
-end
-
-function QState(lsize::Int, num::Int, bits::UInt32; type::DataType=ComplexF64)
-    basis = NumBasis(lsize, num)
-    vector = zeros(type, length(basis.bitsvec))
-    idx = findindex(basis, bits)
+    idx = findindex(basis, bits) # find the index of the assigned state
     idx > length(basis.bitsvec) && error("bitstring not in basis!")
-    vector[idx] = one(type)  # default to first basis state
+    vector[idx] = one(type) # nonzero coefficient only for the assigned state
     QState{type}(basis, vector)
 end
 
-QState(statestr::String; type::DataType=ComplexF64) = 
-    QState(length(statestr), parse(UInt32, statestr; base=2); type=type)
-QState(strvec::Vector{Symbol}; type::DataType=ComplexF64) = 
-    QState(length(strvec), symbol2bits(strvec); type=type)
+QState(statestr::String; num = nothing, kint = nothing, type::DataType = ComplexF64) = 
+    QState(length(statestr), parse(UInt32, statestr; base=2); num = num, kint = kint, type = type)
 
-QState(statestr::String, num::Int; type::DataType=ComplexF64) = 
-    QState(length(statestr), num, parse(UInt32, statestr; base=2); type=type)
-QState(strvec::Vector{Symbol}, num::Int; type::DataType=ComplexF64) = 
-    QState(length(strvec), num, symbol2bits(strvec); type=type)
+QState(strvec::Vector{Symbol}; num = nothing, kint = nothing, type::DataType = ComplexF64) = 
+    QState(length(strvec), symbol2bits(strvec); num = num, kint = kint, type = type)
 
 
 function LinearAlgebra.normalize!(psi::QState)
@@ -88,11 +104,11 @@ end
 LinearAlgebra.norm(psi::QState) = LinearAlgebra.norm(psi.vector)
 
 function inner(x::QState, y::QState)
-    length(x.vector) == length(y.vector) || error("wrong dimension of two states!")
+    x.basis == y.basis || error("Basis mismatch! Cannot perform inner product on different bases.")
     return x.vector' * y.vector
 end
 
 function Base.:+(x::QState, y::QState)
-    length(x.vector) == length(y.vector) || error("wrong dimension of two states!")
+     x.basis == y.basis || error("Basis mismatch! Cannot add different bases.")
     return QState(y.basis, x.vector + y.vector)
 end

@@ -19,7 +19,7 @@ function spectrum(ops::OpSum, lsize::Int)
     energies = Float64[]
     sizehint!(energies, 1 << lsize)
     for num in 0:lsize
-        basis = NumBasis(lsize, num)
+        basis = SpinBasis(lsize; num = num)
         hmat = makeHamiltonian(ops, basis)
         eigs = eigvals!(Hermitian(hmat))
         append!(energies, eigs)
