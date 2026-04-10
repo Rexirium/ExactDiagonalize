@@ -89,7 +89,8 @@ using SparseArrays
         # Test two-qubit operator
         op_cx = SpinOp(:CX, (1, 2))
         @test op_cx.name == :CX
-        @test op_cx.loc1 == (0x01, 0x02)
+        @test op_cx.loc1 == 0x01
+        @test op_cx.loc2 == 0x02
         
         # Test OpSum construction
         operators = [
@@ -208,10 +209,10 @@ using SparseArrays
         ops_sum = OpSum(operators, ComplexF64)
         
         init_state = QState(2, 0x00000)
-        times = [0.0, 0.01, 0.02]
+        ts = 0.00 : 0.01 : 0.02
         obs = ZObserver(1, init_state.basis)
         
-        final_state = timeEvolve(ops_sum, init_state, times, obs, rk4())
+        final_state = timeEvolve(ops_sum, init_state, ts, obs, rk4())
         
         @test length(final_state.vector) == 4
         @test norm(final_state) ≈ 1.0 atol = 1e-10
@@ -227,10 +228,10 @@ using SparseArrays
         ops_sum = OpSum(operators, ComplexF64)
         
         init_state = QState(2, 0x00001)
-        times = [0.0, 0.01, 0.02]
+        ts = 0.00 : 0.01 : 0.02
         obs = XObserver(1, init_state.basis)
         
-        final_state = timeEvolve(ops_sum, init_state, times, obs, spmat())
+        final_state = timeEvolve(ops_sum, init_state, ts, obs, spmat())
         
         @test length(final_state.vector) == 4
         @test norm(final_state) ≈ 1.0 atol=1e-10

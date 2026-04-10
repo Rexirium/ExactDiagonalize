@@ -6,7 +6,7 @@ mutable struct OperatorObserver{T <: Number} <: AbstractObserver
     data::Vector{Float64}
 
     OperatorObserver(os::Tuple, basis::AbstractBasis; sparsed::Bool=true) = new{typeof(os[1])}(
-        op2mat(os[1], os2ops(os, get_optype(_systype[])), basis; sparsed=sparsed), Vector{Float64}()
+        op2mat(os[1], os2ops(os, get_optype(_systype[])), basis, sparsed), Vector{Float64}()
     )
 end
 
