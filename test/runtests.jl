@@ -84,12 +84,12 @@ using SparseArrays
         # Test single qubit operator
         op_z = SpinOp(:Z, 1)
         @test op_z.name == :Z
-        @test op_z.loc == 1
+        @test op_z.loc1 == 1
         
         # Test two-qubit operator
         op_cx = SpinOp(:CX, (1, 2))
         @test op_cx.name == :CX
-        @test op_cx.loc == (0x01, 0x02)
+        @test op_cx.loc1 == (0x01, 0x02)
         
         # Test OpSum construction
         operators = [

@@ -19,10 +19,11 @@ abstract type AbstractOp end
 # Spin operator (e.g., X, iY, Z, CX, CZ)
 struct SpinOp <: AbstractOp
     name::Symbol
-    loc::Union{UInt8, Tuple{UInt8, UInt8}}
+    loc1::UInt8
+    loc2::UInt8
 
-    SpinOp(name::Symbol, loc::Int) = new(name, loc % UInt8)
-    SpinOp(name::Symbol, loc::Tuple{Int, Int}) = new(name, loc .% UInt8)
+    SpinOp(name::Symbol, loc::Int) = new(name, loc % UInt8, 0x00)
+    SpinOp(name::Symbol, loc::Tuple{Int, Int}) = new(name, loc[1] % UInt8, loc[2] % UInt8)
 end
 
 # Decide which type of operator to take
@@ -42,7 +43,8 @@ function os2ops(os::Tuple, optype::DataType)
     ops = optype[]
     sizehint!(ops, len ÷ 2)
     for s in 2:2:len
-        push!(ops, optype(os[s], os[s+1]))
+        loc = os[s + 1]
+        push!(ops, optype(os[s], loc))
     end
     return ops
 end
@@ -61,16 +63,17 @@ function OpSum(osvec::Vector{<:Tuple}, eltype::DataType)
     return OpSum{eltype, optype}(covec, opvec)
 end
 
-function Base.:+(opsum::OpSum{T, O}, os::Tuple) where {T <: Number, O <: AbstractOp}
+function Base.:+(opsum::OpSum{<:Number, O}, os::Tuple) where  O <: AbstractOp
     push!(opsum.covec, os[1])
     push!(opsum.opvec, os2ops(os, O))
     opsum
 end
 
 function Base.:+(ops1::OpSum{T, O}, ops2::OpSum{S, O}) where {T <: Number, S <: Number, O <: AbstractOp}
-    covec = vcat(ops1.covec, ops2.covec)
+    R = promote_type(T, S)
+    covec = Vector{R}(vcat(ops1.covec, ops2.covec))
     opvec = vcat(ops1.opvec, ops2.opvec)
-    return OpSum{promote_type(T, S), O}(covec, opvec)
+    return OpSum{R, O}(covec, opvec)
 end
 
 
@@ -82,20 +85,20 @@ I do not specify the Y operator (has complex element) to keep type stability, bu
 # Wait for later development on Fermion Operators
 @inline function act(op::SpinOp, bits::UInt32)::Tuple{UInt32, Int}
     if op.name == :Z
-        return bits, 2 * readbit(bits, op.loc) - 1
+        return bits, 2 * readbit(bits, op.loc1) - 1
     elseif op.name == :X
-        return flip(bits, op.loc), 1
+        return flip(bits, op.loc1), 1
     elseif op.name == :iY # means simplectic matrix [0 1 ; -1 0] = iY
-        return flip(bits, op.loc), 1 - 2 * readbit(bits, op.loc)
+        return flip(bits, op.loc1), 1 - 2 * readbit(bits, op.loc1)
     elseif op.name == :σp
-        return flip(bits, op.loc), Int(! readbit(bits, op.loc))
+        return flip(bits, op.loc1), Int(! readbit(bits, op.loc1))
     elseif op.name == :σm
-        return flip(bits, op.loc), Int(readbit(bits, op.loc))
+        return flip(bits, op.loc1), Int(readbit(bits, op.loc1))
     elseif op.name == :CX
-        c, t = op.loc
+        c, t = op.loc1, op.loc2
         return flip(bits, t, readbit(bits, c)), 1
     elseif op.name == :CZ
-        b1, b2 = readbit(bits, minmax(op.loc...))
+        b1, b2 = readbit(bits, minmax(op.loc1, op.loc2))
         return bits, 2 * (b1 ^ b2) - 1
     else
         error("Operator not specified yet!")
@@ -103,14 +106,14 @@ I do not specify the Y operator (has complex element) to keep type stability, bu
 end
 
 # Apply a sequence of operators to a bitstring
-function apply(coef::T, ops::Vector{O}, bits::UInt32) where {T <: Number, O <: AbstractOp}
+function apply(coef::Number, ops::Vector{<:AbstractOp}, bits::UInt32)
     element = coef
     newbits = bits
 
-    for op in ops
-        tmp = act(op, newbits)
-        newbits = tmp[1]
-        element *= tmp[2]
+    @inbounds for op in ops
+        newbits, ele_mul = act(op, newbits)
+        element *= ele_mul
+        iszero(element) && break
     end
     return newbits, element
 end
@@ -135,27 +138,27 @@ end
 end
 
 # Apply operator(s) to a state and return new state
-function apply(ops::Vector{O}, psi::QState, coeff::Number=1.0) where O <: AbstractOp
+function apply(ops::Vector{<:AbstractOp}, psi::QState, coeff::Number=1.0)
     opmat = op2mat(coeff, ops, psi.basis)
     vector = opmat * psi.vector
     return QState(psi.basis, vector)
 end
 
 # In-place apply operator(s) to a state
-function apply!(ops::Vector{O}, psi::QState, coeff::Number=1.0) where O <: AbstractOp
+function apply!(ops::Vector{<:AbstractOp}, psi::QState, coeff::Number=1.0)
     opmat = op2mat(coeff, ops, psi.basis)
     lmul!(opmat, psi.vector)
 end
 
 # Compute expectation value of operator(s) in a state
-function expected(ops::Vector{O}, psi::QState, coeff::Number=1.0) where O <: AbstractOp
+function expected(ops::Vector{<:AbstractOp}, psi::QState, coeff::Number=1.0)
     opmat = op2mat(coeff, ops, psi.basis)
     v = psi.vector
     return real(v' * opmat * v)
 end
 
 # Compute ⟨x|O|y⟩ for two states and operator(s)
-function LinearAlgebra.dot(x::QState, ops::Tuple{T, Vector{O}}, y::QState) where {T <: Number, O <: AbstractOp}
+function LinearAlgebra.dot(x::QState, ops::Tuple{Number, Vector{<:AbstractOp}}, y::QState)
     length(x.vector) == length(y.vector) || error("wrong dimension of two states!")
     opmat = op2mat(ops[1], ops[2], y.basis)
     return dot(x.vector, opmat, y.vector)
@@ -166,7 +169,7 @@ Construct the hamiltonian matrix from OpSum type with assigned basis.
 Return either dense or sparse matrix controled by sparsed, default to be dense
 because `eigen` in LinearAlgebra does not support sparse matrix.
 """
-function makeHamiltonian(opsum::OpSum{T}, basis::B; sparsed::Bool=false) where {T <: Number, B <: AbstractBasis}
+function makeHamiltonian(opsum::OpSum{T}, basis::AbstractBasis; sparsed::Bool=false) where T <: Number
     dim = length(basis.bitsvec)
     opnum = length(opsum.covec)
     covec = opsum.covec
