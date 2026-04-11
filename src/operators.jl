@@ -16,14 +16,25 @@ get_systype() = _systype[]
 # Abstract operator type
 abstract type AbstractOp end
 
+@enum OpName OP_Z OP_X OP_iY OP_σp OP_σm OP_CX OP_CZ OP_UNKNOWN
+function symbol2opname(s::Symbol)
+    s === :Z  ? OP_Z  :
+    s === :X  ? OP_X  :
+    s === :iY ? OP_iY :
+    s === :σp ? OP_σp :
+    s === :σm ? OP_σm :
+    s === :CX ? OP_CX :
+    s === :CZ ? OP_CZ : OP_UNKNOWN
+end
+
 # Spin operator (e.g., X, iY, Z, CX, CZ)
 struct SpinOp <: AbstractOp
-    name::Symbol
+    name::OpName
     loc1::UInt8
     loc2::UInt8
 
-    SpinOp(name::Symbol, loc::Int) = new(name, loc % UInt8, 0x00)
-    SpinOp(name::Symbol, loc::Tuple{Int, Int}) = new(name, loc[1] % UInt8, loc[2] % UInt8)
+    SpinOp(name::Symbol, loc::Int) = new(symbol2opname(name), loc % UInt8, 0x00)
+    SpinOp(name::Symbol, loc::Tuple{Int, Int}) = new(symbol2opname(name), loc[1] % UInt8, loc[2] % UInt8)
 end
 
 # Decide which type of operator to take
@@ -84,20 +95,20 @@ I do not specify the Y operator (has complex element) to keep type stability, bu
 """
 # Wait for later development on Fermion Operators
 @inline function act(op::SpinOp, bits::UInt32)::Tuple{UInt32, Int}
-    if op.name == :Z
+    if op.name == OP_Z
         return bits, 2 * readbit(bits, op.loc1) - 1
-    elseif op.name == :X
+    elseif op.name == OP_X
         return flip(bits, op.loc1), 1
-    elseif op.name == :iY # means simplectic matrix [0 1 ; -1 0] = iY
+    elseif op.name == OP_iY # means simplectic matrix [0 1 ; -1 0] = iY
         return flip(bits, op.loc1), 1 - 2 * readbit(bits, op.loc1)
-    elseif op.name == :σp
+    elseif op.name == OP_σp
         return flip(bits, op.loc1), Int(! readbit(bits, op.loc1))
-    elseif op.name == :σm
+    elseif op.name == OP_σm
         return flip(bits, op.loc1), Int(readbit(bits, op.loc1))
-    elseif op.name == :CX
+    elseif op.name == OP_CX
         c, t = op.loc1, op.loc2
         return flip(bits, t, readbit(bits, c)), 1
-    elseif op.name == :CZ
+    elseif op.name == OP_CZ
         b1, b2 = readbit(bits, minmax(op.loc1, op.loc2))
         return bits, 2 * (b1 ^ b2) - 1
     else

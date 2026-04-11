@@ -83,12 +83,12 @@ using SparseArrays
         
         # Test single qubit operator
         op_z = SpinOp(:Z, 1)
-        @test op_z.name == :Z
+        @test op_z.name == ExactDiagonalize.OP_Z
         @test op_z.loc1 == 1
         
         # Test two-qubit operator
         op_cx = SpinOp(:CX, (1, 2))
-        @test op_cx.name == :CX
+        @test op_cx.name == ExactDiagonalize.OP_CX
         @test op_cx.loc1 == 0x01
         @test op_cx.loc2 == 0x02
         
@@ -103,7 +103,7 @@ using SparseArrays
         @test ops_sum.covec[2] ≈ 0.5
 
         ops_sum += (0.5, :X, 2)
-        @test ops_sum.opvec[3][1].name == :X
+        @test ops_sum.opvec[3][1].name == ExactDiagonalize.OP_X
     end
 
     @testset "System Type Configuration" begin
