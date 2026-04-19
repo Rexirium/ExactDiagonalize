@@ -39,18 +39,26 @@ def get_matrixele(L:int):
     h_mI = hamiltonian(static, [], basis=basis, dtype=np.float64)
 
     energies, eigstates = h_mI.eigh()
-    omega = energies.reshape(-1, 1) - energies
     
     ozz = [[1.0 / L, i, (i+1) % L] for i in range(L)]
     ostatic = [["xx", ozz]]
 
     opzz = quantum_LinearOperator(ostatic, basis=basis, dtype=np.float64)
-    
     opzzmat = opzz.matrix_ele(eigstates, eigstates)
     
-    return omega, opzzmat
+    omega = []
+    opzzarr = []
+   
+    for i in range(len(energies)):
+        for j in range(len(energies)):
+            mean = np.abs(energies[i] + energies[j]) / 2
+            if mean > 0.1:
+                continue
+            
+            omega.append(energies[i] - energies[j])
+            opzzarr.append(opzzmat[i, j] * opzzmat[i, j].conj())
     
-
+    return np.array(omega), np.array(opzzarr)
 L_list = [10, 14, 18]
 
 plt.rcParams.update({
@@ -60,13 +68,32 @@ plt.rcParams.update({
     "ytick.direction": "in"
 })
 
+#fig, ax = plt.subplots()
+#for L in L_list:
+#    E, expvals = get_expvals(L)
+#    ax.scatter(E, expvals, s=1, label="$L = {:d}$".format(L))
+
+#ax.set_xlabel(r"$E_n/L$")
+#ax.set_ylabel(r"$\langle m \vert \hat{O} \vert m \rangle$")
+
+#ax.legend(markerscale=2)
+#plt.show()
+
 fig, ax = plt.subplots()
-for L in L_list:
-    E, expvals = get_expvals(L)
-    ax.scatter(E, expvals, s=1, label="$L = {:d}$".format(L))
 
-ax.set_xlabel(r"$E_n/L$")
-ax.set_ylabel(r"$\langle m \vert O \vert m \rangle$")
+omega, opzzarr = get_matrixele(L_list[1])
 
-ax.legend(markerscale=2)
+mesh = np.arange(-25, 25, 0.5)
+counts = np.zeros_like(mesh, dtype="int")
+means = np.zeros_like(mesh, dtype="float64")
+
+for i in range(len(omega)):
+    idx = np.argmin(np.abs(mesh - omega[i]))
+    counts[idx] += 1
+    means[idx] += (opzzarr[i] - means[idx]) / counts[idx]
+    
+ax.scatter(omega, opzzarr, s=1, label=r"$|O_{mn}|^2$")
+ax.plot(mesh, means, lw=1.5, c="red", label=r"$|f_O(E=0, \omega)|^2$")
+ax.set(xlabel=r"$\omega$", ylabel=r"$|\langle m \vert \hat{O} \vert m \rangle |^2$", 
+       yscale="log", ylim=(1e-17, 1e-1), xlim=(-25, 25))
 plt.show()
