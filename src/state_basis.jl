@@ -73,6 +73,25 @@ function findindex(basis::SpinBasis{Int, Int}, bits::UInt32)::Int
     return searchsortedfirst(basis.bitsvec, bits)
 end
 
+function printbasis(basis::SpinBasis; bitstyle::String="bin")
+    println("Basis size: $(length(basis.bitsvec))")
+    println("Index\tState\tInteger")
+    if bitstyle == "bin"
+        for (i, bits) in enumerate(basis.bitsvec)
+            bstr = bitstring(bits)[33 - basis.lsize : end]
+            bstr = "| " * join(bstr, ' ') * " ⟩"
+            println("$(i).\t$bstr\t$bits")
+        end
+    elseif bitstyle == "sym"
+        for (i, bits) in enumerate(basis.bitsvec)
+            bstr = bitstring(bits)[33 - basis.lsize : end]
+            sstr = replace(bstr, '1' => "↑", '0' => "↓")
+            sstr = '|' * join(sstr, ' ') * " ⟩"
+            println("$(i).\t$sstr\t$bits")
+        end
+    end
+end
+
 # ============================================================================
 # QUANTUM STATE CONSTRUCTORS
 # ============================================================================
