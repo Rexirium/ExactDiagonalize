@@ -130,7 +130,7 @@ function apply(coef::Number, ops::Vector{<:AbstractOp}, bits::UInt32)
 end
 
 # Build operator matrix in given basis
-function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::AbstractBasis, sparsed::Bool=true) where T <: Number
+function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::SpinBasis{N, <:Nothing}, sparsed::Bool=true) where {T <: Number, N}
     dim = length(basis.bitsvec)
     opmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim)
     @inbounds for (j, bits) in enumerate(basis.bitsvec)
@@ -159,7 +159,7 @@ end
 function expected(ops::Vector{<:AbstractOp}, psi::QState, coeff::Number=1.0)
     opmat = op2mat(coeff, ops, psi.basis)
     v = psi.vector
-    return real(v' * opmat * v)
+    return real(dot(v, opmat, v))
 end
 
 # Compute ⟨x|O|y⟩ for two states and operator(s)
@@ -174,7 +174,7 @@ Construct the hamiltonian matrix from OpSum type with assigned basis.
 Return either dense or sparse matrix controled by sparsed, default to be dense
 because `eigen` in LinearAlgebra does not support sparse matrix.
 """
-function makeHamiltonian(opsum::OpSum{T}, basis::AbstractBasis; sparsed::Bool=false) where T <: Number
+function makeHamiltonian(opsum::OpSum{T}, basis::SpinBasis{N, <:Nothing}; sparsed::Bool=false) where {T <: Number, N}
     dim = length(basis.bitsvec)
     opnum = length(opsum.covec)
     covec = opsum.covec

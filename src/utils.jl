@@ -39,6 +39,18 @@ function flip(bits::UInt32, pos::Unsigned, b::Bool)::UInt32
     return bits ⊻ (b << (pos - 0x01))
 end
 
+function cshift(bits::UInt32, len::Int, shift::Int)::UInt32
+    # Circularly shift the bits in `bits` to the left by `shift` positions, within a total length of `len` bits.
+    shift_mod = mod(shift, len)
+    mask = (0x00001 << len) - 0x00001
+    return ((bits << shift_mod) | (bits >> (len - shift_mod))) & mask
+end
+
+function cshift(bits::UInt32, len::Int)::UInt32
+    mask = (0x00001 << len) - 0x00001
+    return ((bits << 1) | (bits >> (len - 1))) & mask
+end
+
 function splitbasis(bits::UInt32, b::Unsigned)::Tuple{UInt32, UInt32}
     # Split the integer `bits` into two parts at bit position `b`.
     # Returns a tuple (right, left), where `right` contains the lower `b` bits and `left` contains the remaining higher bits.
@@ -71,4 +83,35 @@ function numbitbasis(len::Int, num::Int)::Vector{UInt32}
         ind = next
     end
     return basis
+end
+
+function momentbitbasis(len::Int, kint::Int)
+    a = zeros(UInt32, len + 1)
+    basis = UInt32[]
+    orbit_sizes = UInt32[]
+
+    function fkm_necklace(t, p)
+        if t > len
+            if len % p == 0
+                if (kint * p) % len == 0
+                    val = 0x00000
+                    for i in 1:len
+                        val = (val << 0x01) | a[i + 1]
+                    end
+                    push!(basis, val)
+                    push!(orbit_sizes, p % UInt32)
+                end
+            end
+        else
+            a[t + 1] = a[t - p + 1]
+            fkm_necklace(t + 1, p)
+            
+            if a[t - p + 1] == 0
+                a[t + 1] = 1
+                fkm_necklace(t + 1, t)
+            end
+        end
+    end
+    fkm_necklace(1, 1)
+    return basis, orbit_sizes
 end

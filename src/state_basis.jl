@@ -41,33 +41,55 @@ struct SpinBasis{N, K, V <: AbstractVector{UInt32}} <: AbstractBasis
     num::N # total spin up numbers
     kint::K # momentum sector label, i.e. `m` in  k = 2πm/L
     bitsvec::V
+    orbsize::Vector{UInt32} 
 end
 
 function SpinBasis(lsize::Int; num = nothing, kint = nothing)
     if isnothing(num) && isnothing(kint)
         # full basis use UnitRange to save memory
         bitsvec = 0x00000 : ((0x00001 << lsize) - 0x00001)
+        return SpinBasis(lsize, num, kint, bitsvec, UInt32[])
     elseif !isnothing(num) && isnothing(kint)
         # Generate bits vector with fixed `1` s
         bitsvec = numbitbasis(lsize, num)
+        return SpinBasis(lsize, num, kint, bitsvec, UInt32[])
+    elseif isnothing(num) && !isnothing(kint)
+        bitsvec, orbsize = momentbitbasis(lsize, kint)
+        return SpinBasis(lsize, num, kint, bitsvec, orbsize)
     else
         error("Invalid basis type, wait for later development.")
     end
-    
-    return SpinBasis(lsize, num, kint, bitsvec)
 end
 
 Base.:(==)(b1::SpinBasis, b2::SpinBasis) = 
     (b1.lsize == b2.lsize) && (b1.num == b2.num) && (b1.kint == b2.kint)
+
 # find index of a product state in general basis
 function findindex(basis::SpinBasis{Nothing, Nothing}, bits::UInt32)::Int
     return Int(bits) + 1
 end
+
 # find index of a product state in number conserving basis
 function findindex(basis::SpinBasis{Int, Nothing}, bits::UInt32)::Int
     count_ones(bits) == basis.num || return length(basis.bitsvec) + 1  # if number of ones doesn't match, return out of bounds index
     return searchsortedfirst(basis.bitsvec, bits)
 end
+
+function findindex(basis::SpinBasis{Nothing, Int}, bits::UInt32)
+    # For momentum sector basis, we need to check both the bitstring and its momentum label
+    resbits = bits
+    tmpbits = bits
+    dist = 0
+    for i in 1 : basis.lsize - 1
+        tmpbits = cshift(tmpbits, basis.lsize)  # circular shift to get next translation
+        if tmpbits < resbits
+            resbits = tmpbits
+            dist = i
+        end
+    end
+    return searchsortedfirst(basis.bitsvec, resbits), dist
+end
+
 # find index of a product state in other basis
 function findindex(basis::SpinBasis{Int, Int}, bits::UInt32)::Int
     return searchsortedfirst(basis.bitsvec, bits)

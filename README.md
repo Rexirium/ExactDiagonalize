@@ -83,7 +83,7 @@ timeEvolve(opsum, init, ts, obs)
 
 ### Operators
 
-- **`SpinOp`**: Individual spin operators ($X$, $Y$, $Z$, $\sigma^+$, $\sigma^-$, $iY$, $CX$, $CZ$)
+- **`SpinOp`**: Individual spin operators ($X$, $Z$, $\sigma^+$, $\sigma^-$, $iY$, $CX$, $CZ$)
 - **`FermionOp`**: Wait for later development
 - **`Operator`**: Multi-site operator products, such as $aX_i X_{i+1}$ ,  $b CX_{1,2} Z_3$
 - **`OpSum`**: Linear combinations of operators (Hamiltonian)
