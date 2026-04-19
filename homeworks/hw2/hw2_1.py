@@ -59,6 +59,8 @@ def get_matrixele(L:int):
             opzzarr.append(opzzmat[i, j] * opzzmat[i, j].conj())
     
     return np.array(omega), np.array(opzzarr)
+
+
 L_list = [10, 14, 18]
 
 plt.rcParams.update({
@@ -68,20 +70,23 @@ plt.rcParams.update({
     "ytick.direction": "in"
 })
 
-#fig, ax = plt.subplots()
-#for L in L_list:
-#    E, expvals = get_expvals(L)
-#    ax.scatter(E, expvals, s=1, label="$L = {:d}$".format(L))
-
-#ax.set_xlabel(r"$E_n/L$")
-#ax.set_ylabel(r"$\langle m \vert \hat{O} \vert m \rangle$")
-
-#ax.legend(markerscale=2)
-#plt.show()
+cmap = plt.get_cmap("viridis_r")
+colors = cmap(np.linspace(0, 1, len(L_list)))
 
 fig, ax = plt.subplots()
+for i, L in enumerate(L_list):
+    E, expvals = get_expvals(L)
+    ax.scatter(E, expvals, s=0.5, label="$L = {:d}$".format(L), c=colors[i])
 
-omega, opzzarr = get_matrixele(L_list[1])
+ax.set_xlabel(r"$E_n/L$")
+ax.set_ylabel(r"$\langle m \vert \hat{O} \vert m \rangle$")
+
+ax.legend(markerscale=2)
+plt.savefig("homeworks/hw2/hw2_2.png", dpi=600)
+"""
+fig, ax = plt.subplots()
+
+omega, opzzarr = get_matrixele(L_list[2])
 
 mesh = np.arange(-25, 25, 0.5)
 counts = np.zeros_like(mesh, dtype="int")
@@ -92,8 +97,10 @@ for i in range(len(omega)):
     counts[idx] += 1
     means[idx] += (opzzarr[i] - means[idx]) / counts[idx]
     
-ax.scatter(omega, opzzarr, s=1, label=r"$|O_{mn}|^2$")
-ax.plot(mesh, means, lw=1.5, c="red", label=r"$|f_O(E=0, \omega)|^2$")
-ax.set(xlabel=r"$\omega$", ylabel=r"$|\langle m \vert \hat{O} \vert m \rangle |^2$", 
+ax.scatter(omega, opzzarr, s=0.5, label=r"$|O_{mn}|^2$", c="darkred")
+ax.plot(mesh, means, lw=1.5, c="black", label=r"$|f_O(E=0, \omega)|^2$")
+ax.set(xlabel=r"$\omega_{mn}$", ylabel=r"$|\langle m \vert \hat{O} \vert m \rangle |^2$", 
        yscale="log", ylim=(1e-17, 1e-1), xlim=(-25, 25))
-plt.show()
+ax.legend(markerscale=2)
+plt.savefig("homeworks/hw2/hw2_1.png", dpi=600)
+"""
