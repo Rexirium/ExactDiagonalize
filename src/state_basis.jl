@@ -77,15 +77,19 @@ end
 
 function findindex(basis::SpinBasis{Nothing, Int}, bits::UInt32)
     # For momentum sector basis, we need to check both the bitstring and its momentum label
+    lsize = basis.lsize
     resbits = bits
     tmpbits = bits
+    bs64 = (UInt64(bits) << lsize) | bits
+    mask = typemax(UInt32) >> (32 - lsize)
+
     dist = 0
-    for i in 1 : basis.lsize - 1
-        tmpbits = cshift(tmpbits, basis.lsize)  # circular shift to get next translation
-        if tmpbits < resbits
-            resbits = tmpbits
-            dist = i
-        end
+    for i in 1 : lsize - 1
+        tmpbits = ((bs64 >> (lsize - i)) % UInt32) & mask
+
+        is_less = tmpbits < resbits
+        resbits = ifelse(is_less, tmpbits, resbits)
+        dist = ifelse(is_less, i, dist)
     end
     return searchsortedfirst(basis.bitsvec, resbits), dist
 end
@@ -95,7 +99,7 @@ function findindex(basis::SpinBasis{Int, Int}, bits::UInt32)::Int
     return searchsortedfirst(basis.bitsvec, bits)
 end
 
-function printbasis(basis::SpinBasis; bitstyle::String="bin")
+function Base.print(basis::SpinBasis; bitstyle::String="bin")
     println("Basis size: $(length(basis.bitsvec))")
     println("Index\tState\tInteger")
     if bitstyle == "bin"
@@ -104,7 +108,7 @@ function printbasis(basis::SpinBasis; bitstyle::String="bin")
             bstr = "| " * join(bstr, ' ') * " ⟩"
             println("$(i).\t$bstr\t$bits")
         end
-    elseif bitstyle == "sym"
+    elseif bitstyle == "sym" || bitstyle == "arrow"
         for (i, bits) in enumerate(basis.bitsvec)
             bstr = bitstring(bits)[33 - basis.lsize : end]
             sstr = replace(bstr, '1' => "↑", '0' => "↓")

@@ -130,9 +130,10 @@ function apply(coef::Number, ops::Vector{<:AbstractOp}, bits::UInt32)
 end
 
 # Build operator matrix in given basis
-function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::SpinBasis{N, <:Nothing}, sparsed::Bool=true) where {T <: Number, N}
+function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::SpinBasis{N, Nothing}, sparsed::Bool=true) where {T <: Number, N}
     dim = length(basis.bitsvec)
     opmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim)
+
     @inbounds for (j, bits) in enumerate(basis.bitsvec)
         newbits, element = apply(coeff, ops, bits)
         i = findindex(basis, newbits)
@@ -141,6 +142,24 @@ function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::SpinBasis{N, <:Nothi
     end
     return opmat
 end
+
+function op2mat(coeff::Number, ops::Vector{<:AbstractOp}, basis::SpinBasis{Nothing, Int}, sparsed::Bool=true)
+    dim = length(basis.bitsvec)
+    opmat = sparsed ? spzeros(ComplexF64, dim, dim) : zeros(ComplexF64, dim, dim)
+    ks = 2π * basis.kint / basis.lsize
+    orbits = basis.orbsize
+
+    @inbounds for (j, bits) in enumerate(basis.bitsvec)
+        newbits, element = apply(coeff, ops, bits)
+        i, d = findindex(basis, newbits)
+        (i > dim || iszero(element)) && continue
+
+        norm_factor = sqrt(orbits[i] / orbits[j])
+        opmat[i, j] += element * cis(-ks * d) * norm_factor
+    end
+    return opmat
+end
+
 
 # Apply operator(s) to a state and return new state
 function apply(ops::Vector{<:AbstractOp}, psi::QState, coeff::Number=1.0)
@@ -174,7 +193,7 @@ Construct the hamiltonian matrix from OpSum type with assigned basis.
 Return either dense or sparse matrix controled by sparsed, default to be dense
 because `eigen` in LinearAlgebra does not support sparse matrix.
 """
-function makeHamiltonian(opsum::OpSum{T}, basis::SpinBasis{N, <:Nothing}; sparsed::Bool=false) where {T <: Number, N}
+function makeHamiltonian(opsum::OpSum{T}, basis::SpinBasis{N, Nothing}; sparsed::Bool=false) where {T <: Number, N}
     dim = length(basis.bitsvec)
     opnum = length(opsum.covec)
     covec = opsum.covec
@@ -187,6 +206,29 @@ function makeHamiltonian(opsum::OpSum{T}, basis::SpinBasis{N, <:Nothing}; sparse
             i = findindex(basis, newbits)
             (i > dim || iszero(element)) && continue
             hmat[i, j] += element
+        end
+    end
+    return hmat
+end
+
+function makeHamiltonian(opsum::OpSum, basis::SpinBasis{Nothing, Int}; sparsed::Bool=false)
+    dim = length(basis.bitsvec)
+    opnum = length(opsum.covec)
+    covec = opsum.covec
+    opvec = opsum.opvec
+    ks = 2π * basis.kint / basis.lsize
+    orbits = basis.orbsize
+
+    hmat = sparsed ? spzeros(ComplexF64, dim, dim) : zeros(ComplexF64, dim, dim) 
+    @inbounds for (j, bits) in enumerate(basis.bitsvec)
+        sqrtoj = 1.0 / sqrt(orbits[j])
+        for s in 1:opnum
+            newbits, element = apply(covec[s], opvec[s], bits)
+            i, d = findindex(basis, newbits)
+            (i > dim || iszero(element)) && continue
+            
+            norm_factor = sqrt(orbits[i]) * sqrtoj
+            hmat[i, j] += element * cis(-ks * d) * norm_factor
         end
     end
     return hmat
