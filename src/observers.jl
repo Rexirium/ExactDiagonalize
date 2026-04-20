@@ -5,8 +5,8 @@ mutable struct OperatorObserver{T <: Number} <: AbstractObserver
     opmat::SpMatrix{T}
     data::Vector{Float64}
 
-    OperatorObserver(os::Tuple, basis::AbstractBasis; sparsed::Bool=true) = new{typeof(os[1])}(
-        op2mat(os[1], os2ops(os, get_optype(_systype[])), basis, sparsed), Vector{Float64}()
+    OperatorObserver(os::Tuple, basis::AbstractBasis) = new{typeof(os[1])}(
+        op2mat(os[1], os2ops(os, get_optype(_systype[])), basis), Vector{Float64}()
     )
 end
 
@@ -19,8 +19,8 @@ mutable struct OpSumObserver{T <: Number} <: AbstractObserver
     opsmat::SpMatrix{T}
     data::Vector{Float64}
 
-    OpSumObserver(ops::OpSum{T}, basis::AbstractBasis; sparsed::Bool=true) where T <: Number = new{T}(
-        makeHamiltonian(ops, basis; sparsed=sparsed), Vector{Float64}()
+    OpSumObserver(ops::OpSum{T}, basis::AbstractBasis) where T <: Number = new{T}(
+        makeHamiltonian(ops, basis; sparsed=true), Vector{Float64}()
     )
 end
 

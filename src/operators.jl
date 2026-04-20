@@ -47,6 +47,7 @@ mutable struct OpSum{T <: Number, O <: AbstractOp}
 end
 OpSum(T::DataType, O) = OpSum{T, O}(T[], Vector{O}[])
 OpSum(T::DataType) = OpSum(T, get_optype(_systype[]))
+OpSum() = OpSum(Float64)
 
 # Convert tuple to list of SpinOps
 function os2ops(os::Tuple, optype::DataType)
@@ -130,7 +131,7 @@ function apply(coef::Number, ops::Vector{<:AbstractOp}, bits::UInt32)
 end
 
 # Build operator matrix in given basis
-function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::SpinBasis{N, Nothing}, sparsed::Bool=true) where {T <: Number, N}
+function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::SpinBasis{N, Nothing}; sparsed::Bool=true) where {T <: Number, N}
     dim = length(basis.bitsvec)
     opmat = sparsed ? spzeros(T, dim, dim) : zeros(T, dim, dim)
 
@@ -143,7 +144,7 @@ function op2mat(coeff::T, ops::Vector{<:AbstractOp}, basis::SpinBasis{N, Nothing
     return opmat
 end
 
-function op2mat(coeff::Number, ops::Vector{<:AbstractOp}, basis::SpinBasis{Nothing, Int}, sparsed::Bool=true)
+function op2mat(coeff::Number, ops::Vector{<:AbstractOp}, basis::SpinBasis{Nothing, Int}; sparsed::Bool=true)
     dim = length(basis.bitsvec)
     opmat = sparsed ? spzeros(ComplexF64, dim, dim) : zeros(ComplexF64, dim, dim)
     ks = 2π * basis.kint / basis.lsize
@@ -154,7 +155,7 @@ function op2mat(coeff::Number, ops::Vector{<:AbstractOp}, basis::SpinBasis{Nothi
         i, d = findindex(basis, newbits)
         (i > dim || iszero(element)) && continue
 
-        norm_factor = sqrt(orbits[i] / orbits[j])
+        norm_factor = sqrt(orbits[j] / orbits[i])
         opmat[i, j] += element * cis(-ks * d) * norm_factor
     end
     return opmat
@@ -221,13 +222,12 @@ function makeHamiltonian(opsum::OpSum, basis::SpinBasis{Nothing, Int}; sparsed::
 
     hmat = sparsed ? spzeros(ComplexF64, dim, dim) : zeros(ComplexF64, dim, dim) 
     @inbounds for (j, bits) in enumerate(basis.bitsvec)
-        sqrtoj = 1.0 / sqrt(orbits[j])
         for s in 1:opnum
             newbits, element = apply(covec[s], opvec[s], bits)
             i, d = findindex(basis, newbits)
             (i > dim || iszero(element)) && continue
             
-            norm_factor = sqrt(orbits[i]) * sqrtoj
+            norm_factor = sqrt(orbits[j] / orbits[i])
             hmat[i, j] += element * cis(-ks * d) * norm_factor
         end
     end
