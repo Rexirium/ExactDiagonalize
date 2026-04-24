@@ -51,29 +51,36 @@ end
 
 function updateHaldaneHamiltonian!(hmat::Matrix{T}, Lx::Int, ky::Float64, t1::Real, t2::Number; m2::Real=0.0, start::Char='B') where T <: Number
     t2a, phi = abs(t2), angle(t2)
-
-    if start == 'B'
-        dd = repeat(T[2t2a * cos(ky - phi) - m2, 2t2a * cos(ky + phi) + m2], Lx ÷ 2)
-        d1 = repeat(T[2t1 * cos(ky / 2), t1], Lx ÷ 2)
-        d2 = repeat(T[2t2a * cos(ky/2 + phi), 2t2a * cos(ky/2 - phi)], Lx ÷ 2 - 1)
-    else
-        dd = repeat(T[2t2a * cos(ky + phi) + m2, 2t2a * cos(ky - phi) - m2], Lx ÷ 2)
-        d1 = repeat(T[t1, 2t1 * cos(ky / 2)], Lx ÷ 2)
-        d2 = repeat(T[2t2a * cos(ky/2 - phi), 2t2a * cos(ky/2 + phi)], Lx ÷ 2 - 1)
-    end
     
-    if iseven(Lx)
-        pop!(d1)
-    else
-        push!(dd, 2t2a * cos(ky - phi) + m2)
-        push!(d2, 2t2a * cos(ky/2 + phi))
-    end
+    tacosp, tacosm = 2t2a * cos(ky + phi) + m2, 2t2a * cos(ky - phi) - m2
+    tacosp2, tacosm2 = 2t2a * cos(ky/2 + phi), 2t2a * cos(ky/2 - phi)
+    tcos = 2t1 * cos(ky / 2)
 
-    hmat[diagind(hmat, -2)] .= conj(d2)
-    hmat[diagind(hmat, -1)] .= conj(d1)
-    hmat[diagind(hmat)] .= dd
-    hmat[diagind(hmat, 1)] .= d1
-    hmat[diagind(hmat, 2)] .= d2
+    is_B = start == 'B'
+    dd_o::T = ifelse(is_B, tacosm, tacosp)
+    dd_e::T = ifelse(is_B,  tacosp, tacosm)
+    d1_o::T = ifelse(is_B, tcos, t1)
+    d1_e::T = ifelse(is_B, t1, tcos)
+    d2_o::T = ifelse(is_B, tacosp2, tacosm2)
+    d2_e::T = ifelse(is_B, tacosm2, tacosp2)
+
+    @inbounds for j in 1 : Lx
+        is_odd = isodd(j)
+
+        hmat[j, j] = ifelse(is_odd, dd_o, dd_e)
+
+        if j <= Lx - 1
+            v1 = ifelse(is_odd, d1_o, d1_e)
+            hmat[j, j+1] = v1
+            hmat[j+1, j] = conj(v1)
+        end
+
+        if j <= Lx - 2
+            v2 = ifelse(is_odd, d2_o, d2_e)
+            hmat[j, j+2] = v2
+            hmat[j+2, j] = conj(v2)
+        end
+    end
 end
 
 function eigenHaldane(kx::Matrix, ky::Matrix, t1::Real, t2::Number; m2::Real=0.0)

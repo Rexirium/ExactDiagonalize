@@ -2,13 +2,13 @@ using CairoMakie
 
 include("haldane.jl")
 
-function plot_Haldane_spectrum(Lx::Int, nky::Int, t1::Real, t2::Number; m2::Real=0.0) 
+function plot_Haldane_spectrum(Lx::Int, nky::Int, t1::Real, t2::Number; m2::Real=0.0, start::Char='B') 
     kys = range(0, 2π, nky)
     spectra = Matrix{Float64}(undef, Lx, nky)
 
     H = zeros(Lx, Lx)
     for (i, ky) in enumerate(kys)
-        updateHaldaneHamiltonian!(H, Lx, ky, t1, t2; m2 = m2)
+        updateHaldaneHamiltonian2!(H, Lx, ky, t1, t2; m2 = m2, start=start)
         spectra[:, i] = eigvals(H)
     end
 
@@ -26,15 +26,15 @@ function plot_Haldane_spectrum(Lx::Int, nky::Int, t1::Real, t2::Number; m2::Real
     fig
 end
 
-function plot_Haldane_edgestates(Lx::Int, kys::Vector{Float64}, t1::Real, t2::Number; m2=0.0) 
-    fig = Figure(size=(800, 900))
+function plot_Haldane_edgestates(Lx::Int, kys::Vector{Float64}, t1::Real, t2::Number; m2=0.0, start::Char='B') 
+    fig = Figure()
 
     for (row, kyc) in enumerate(kys)
-        H = makeHaldaneHamiltonian(Lx, kyc * π, t1, t2; m2=m2)
+        H = makeHaldaneHamiltonian(Lx, kyc * π, t1, t2; m2=m2, start=start)
         edgestates = get_edgestates(H)
 
         ax = Axis(fig[row, 1], 
-            title="Haldane Edge States at k_y a = $(kyc)π", 
+            title="Haldane Edge States at k_y a_y = $(kyc)π", 
             xlabel=L"j", ylabel=L"|ψ_j|^2", 
             xticks = 0 : 10 : Lx
         )
@@ -57,6 +57,6 @@ let
         ylabelsize = 18,
     ))
 
-    fig = plot_Haldane_spectrum(50, 201, 1.0, 0.2im)
-    
+    fig = plot_Haldane_edgestates(50, [1.0], 1.0, 0.2im; start='B')
+    save("solidstatehomework/hw2/edgestate.png", fig)
 end
