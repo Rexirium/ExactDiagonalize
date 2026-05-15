@@ -16,13 +16,15 @@ get_systype() = _systype[]
 # Abstract operator type
 abstract type AbstractOp end
 
-@enum OpName OP_Z OP_X OP_iY OP_σp OP_σm OP_CX OP_CZ OP_UNKNOWN
+@enum OpName OP_Z OP_X OP_iY OP_σp OP_σm OP_Pup OP_Pdn OP_CX OP_CZ OP_UNKNOWN
 function symbol2opname(s::Symbol)
     s === :Z  ? OP_Z  :
     s === :X  ? OP_X  :
     s === :iY ? OP_iY :
     s === :σp ? OP_σp :
     s === :σm ? OP_σm :
+    s === :Pup ? OP_Pup :
+    s === :Pdn ? OP_Pdn :
     s === :CX ? OP_CX :
     s === :CZ ? OP_CZ : OP_UNKNOWN
 end
@@ -31,10 +33,17 @@ end
 struct SpinOp <: AbstractOp
     name::OpName
     loc1::UInt8
+
+    SpinOp(name::Symbol, loc::Int) = new(symbol2opname(name), loc % UInt8)
+end
+
+struct CSpinOp <: AbstractOp
+    name::OpName
+    loc1::UInt8
     loc2::UInt8
 
-    SpinOp(name::Symbol, loc::Int) = new(symbol2opname(name), loc % UInt8, 0x00)
-    SpinOp(name::Symbol, loc::Tuple{Int, Int}) = new(symbol2opname(name), loc[1] % UInt8, loc[2] % UInt8)
+    CSpinOp(name::Symbol, loc::Int) = new(symbol2opname(name), loc % UInt8, 0x00)
+    CSpinOp(name::Symbol, loc::Tuple{Int, Int}) = new(symbol2opname(name), loc[1] % UInt8, loc[2] % UInt8)
 end
 
 # Decide which type of operator to take
@@ -106,12 +115,17 @@ I do not specify the Y operator (has complex element) to keep type stability, bu
         return flip(bits, op.loc1), Int(! readbit(bits, op.loc1))
     elseif op.name == OP_σm
         return flip(bits, op.loc1), Int(readbit(bits, op.loc1))
-    elseif op.name == OP_CX
+    elseif op.name == OP_Pup
+        return bits, Int(readbit(bits, op.loc1))
+    elseif op.name == OP_Pdn
+        return bits, Int(! readbit(bits, op.loc1))
+    #= elseif op.name == OP_CX
         c, t = op.loc1, op.loc2
         return flip(bits, t, readbit(bits, c)), 1
     elseif op.name == OP_CZ
         b1, b2 = readbit(bits, minmax(op.loc1, op.loc2))
-        return bits, 2 * (b1 ^ b2) - 1
+        return bits, 2 * (b1 ^ b2) - 1 
+    =#
     else
         error("Operator not specified yet!")
     end
