@@ -15,36 +15,37 @@ get_systype() = _systype[]
 
 # Abstract operator type
 abstract type AbstractOp end
+abstract type SpinOp <: AbstractOp end
 
-@enum OpName OP_Z OP_X OP_iY OP_σp OP_σm OP_Pup OP_Pdn OP_CX OP_CZ OP_UNKNOWN
-function symbol2opname(s::Symbol)
-    s === :Z  ? OP_Z  :
-    s === :X  ? OP_X  :
-    s === :iY ? OP_iY :
-    s === :σp ? OP_σp :
-    s === :σm ? OP_σm :
-    s === :Pup ? OP_Pup :
-    s === :Pdn ? OP_Pdn :
-    s === :CX ? OP_CX :
-    s === :CZ ? OP_CZ : OP_UNKNOWN
+@enum SpinOp1Name OP_Z OP_X OP_iY OP_σp OP_σm OP_Pup OP_Pdn OP_UNKNOWN
+@enum SpinOp2Name OP_CX OP_CZ
+
+const opDict = Dict{Symbol, Enum}(
+    :Z  => OP_Z,
+    :X  => OP_X,
+    :iY => OP_iY,
+    :σp => OP_σp,
+    :σm => OP_σm,
+    :Pup => OP_Pup,
+    :Pdn => OP_Pdn,
+    :CX => OP_CX,
+    :CZ => OP_CZ
+)
+
+struct SpinOp1 <: SpinOp
+    name::SpinOp1Name
+    loc::UInt8
 end
 
-# Spin operator (e.g., X, iY, Z, CX, CZ)
-struct SpinOp <: AbstractOp
-    name::OpName
-    loc1::UInt8
-
-    SpinOp(name::Symbol, loc::Int) = new(symbol2opname(name), loc % UInt8)
-end
-
-struct CSpinOp <: AbstractOp
-    name::OpName
+struct SpinOp2 <: SpinOp
+    name::SpinOp2Name
     loc1::UInt8
     loc2::UInt8
-
-    CSpinOp(name::Symbol, loc::Int) = new(symbol2opname(name), loc % UInt8, 0x00)
-    CSpinOp(name::Symbol, loc::Tuple{Int, Int}) = new(symbol2opname(name), loc[1] % UInt8, loc[2] % UInt8)
 end
+
+Op(name::SpinOp1Name, loc::Int) = SpinOp1(name, loc % UInt8)
+Op(name::SpinOp2Name, locs::Tuple{Int, Int}) = SpinOp2(name, locs[1] % UInt8, locs[2] % UInt8)
+Op(name::Symbol, loc::Union{Int, Tuple{Int,Int}}) = Op(opDict[name], loc)
 
 # Decide which type of operator to take
 get_optype(::Val{:Spin}) = SpinOp
@@ -65,14 +66,14 @@ function os2ops(os::Tuple, optype::DataType)
     sizehint!(ops, len ÷ 2)
     for s in 2:2:len
         loc = os[s + 1]
-        push!(ops, optype(os[s], loc))
+        push!(ops, Op(os[s], loc))
     end
     return ops
 end
 
 # Construct OpSum from tuples and element type
-function OpSum(osvec::Vector{<:Tuple}, eltype::DataType)
-    covec = Vector{eltype}()
+function OpSum(osvec::Vector{<:Tuple}, dtype::DataType)
+    covec = Vector{dtype}()
     optype = get_optype(_systype[])
     opvec = Vector{optype}[]
 
@@ -81,7 +82,7 @@ function OpSum(osvec::Vector{<:Tuple}, eltype::DataType)
         push!(covec, os[1])
         push!(opvec, ops)
     end
-    return OpSum{eltype, optype}(covec, opvec)
+    return OpSum{dtype, optype}(covec, opvec)
 end
 
 function Base.:+(opsum::OpSum{<:Number, O}, os::Tuple) where  O <: AbstractOp
@@ -104,28 +105,33 @@ act a single qubit operator on the state `bits`=|1001011⟩ for bits=(1001011)�
 I do not specify the Y operator (has complex element) to keep type stability, but use iY instead.
 """
 # Wait for later development on Fermion Operators
-@inline function act(op::SpinOp, bits::UInt32)::Tuple{UInt32, Int}
+@inline function act(op::SpinOp1, bits::UInt32)::Tuple{UInt32, Int}
     if op.name == OP_Z
-        return bits, 2 * readbit(bits, op.loc1) - 1
+        return bits, 2 * readbit(bits, op.loc) - 1
     elseif op.name == OP_X
-        return flip(bits, op.loc1), 1
+        return flip(bits, op.loc), 1
     elseif op.name == OP_iY # means simplectic matrix [0 1 ; -1 0] = iY
-        return flip(bits, op.loc1), 1 - 2 * readbit(bits, op.loc1)
+        return flip(bits, op.loc), 1 - 2 * readbit(bits, op.loc)
     elseif op.name == OP_σp
-        return flip(bits, op.loc1), Int(! readbit(bits, op.loc1))
+        return flip(bits, op.loc), Int(! readbit(bits, op.loc))
     elseif op.name == OP_σm
-        return flip(bits, op.loc1), Int(readbit(bits, op.loc1))
+        return flip(bits, op.loc), Int(readbit(bits, op.loc))
     elseif op.name == OP_Pup
-        return bits, Int(readbit(bits, op.loc1))
+        return bits, Int(readbit(bits, op.loc))
     elseif op.name == OP_Pdn
-        return bits, Int(! readbit(bits, op.loc1))
-    #= elseif op.name == OP_CX
+        return bits, Int(! readbit(bits, op.loc))
+    else
+        error("Operator not specified yet!")
+    end
+end
+
+@inline function act(op::SpinOp2, bits::UInt32)::Tuple{UInt32, Int}
+    if op.name == OP_CX
         c, t = op.loc1, op.loc2
         return flip(bits, t, readbit(bits, c)), 1
     elseif op.name == OP_CZ
         b1, b2 = readbit(bits, minmax(op.loc1, op.loc2))
-        return bits, 2 * (b1 ^ b2) - 1 
-    =#
+        return bits, 2 * (b1 & b2) - 1 
     else
         error("Operator not specified yet!")
     end

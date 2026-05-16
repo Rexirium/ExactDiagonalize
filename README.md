@@ -87,9 +87,12 @@ timeEvolve(opsum, init, ts, obs)
 
 ### Operators
 
-- **`SpinOp`**: Individual spin operators ($X$, $Z$, $iY$, $\sigma^+$, $\sigma^-$, $CX$, $CZ$)
-- **`FermionOp`**: Wait for later development
-- **`Operator`**: Multi-site operator products, such as $aX_i X_{i+1}$ ,  $b CX_{1,2} Z_3$
+- **`SpinOp`**: Local spin operators 
+  - `SpinOp1`: Single-site spin operator ($X$, $Z$, $iY$, $\sigma^+$, $\sigma^-$, $P_\uparrow$, $P_\downarrow$)
+  - `SpinOp2`: Two-site spin operator ($CX$, $CZ$)
+- **`FermionOp`**: Local Fermion operator in second quatization form. Wait for later development
+- **`Op(name, loc)`**: Constructor for individual local operator, automatically decide the operator type based on operator name `name`. The `loc` parameter assigns the site location the operator acts on.
+- **`Operator`**: Multi-site operator products, such as $aX_i X_{i+1}$ ,  $b CX_{1,2} Z_3$. (Not explicitly specified)
 - **`OpSum`**: Linear combinations of operators (Hamiltonian)
 
 ### Functions

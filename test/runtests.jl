@@ -82,12 +82,12 @@ using SparseArrays
         set_systype(:Spin)
         
         # Test single qubit operator
-        op_z = SpinOp(:Z, 1)
+        op_z = Op(:Z, 1)
         @test op_z.name == ExactDiagonalize.OP_Z
-        @test op_z.loc1 == 1
+        @test op_z.loc == 0x01
         
         # Test two-qubit operator
-        op_cx = SpinOp(:CX, (1, 2))
+        op_cx = Op(:CX, (1, 2))
         @test op_cx.name == ExactDiagonalize.OP_CX
         @test op_cx.loc1 == 0x01
         @test op_cx.loc2 == 0x02
@@ -243,40 +243,40 @@ using SparseArrays
         
         # Test Z operator
         bits = 0x00005
-        new_bits, element = act(SpinOp(:Z, 1), bits)
+        new_bits, element = act(Op(:Z, 1), bits)
         @test new_bits == bits  # Z doesn't change the state
         @test element ∈ (1, -1)  # Z eigenvalues
         
         # Test X operator
         bits = 0x00005
-        new_bits, element = act(SpinOp(:X, 1), bits)
+        new_bits, element = act(Op(:X, 1), bits)
         @test new_bits == flip(bits, 0x01)  # X flips the bit
         @test element == 1
         
         # Test iY operator  
         bits = 0x00005
-        new_bits, element = act(SpinOp(:iY, 1), bits)
+        new_bits, element = act(Op(:iY, 1), bits)
         @test new_bits == flip(bits, 0x01)
         @test element == -1
         
         # Test sigma plus operator
         bits = 0x00005
-        new_bits, element = act(SpinOp(:σp, 1), bits)
+        new_bits, element = act(Op(:σp, 1), bits)
         @test element == 0
         
         # Test sigma minus operator
         bits = 0x00005
-        new_bits, element = act(SpinOp(:σm, 1), bits)
+        new_bits, element = act(Op(:σm, 1), bits)
         @test new_bits == flip(bits, 0x01)
         
         # Test CX operator
         bits = 0x00003
-        new_bits, element = act(SpinOp(:CX, (1, 2)), bits)
+        new_bits, element = act(Op(:CX, (1, 2)), bits)
         @test element == 1
         
         # Test CZ operator
         bits = 0x00003
-        new_bits, element = act(SpinOp(:CZ, (1, 2)), bits)
+        new_bits, element = act(Op(:CZ, (1, 2)), bits)
         @test new_bits == bits
         @test element ∈ (1, -1)
     end
