@@ -121,7 +121,7 @@ end
 function QState(lsize::Int, bits::UInt32; num = nothing, kint = nothing, ELT::DataType = ComplexF64)
     basis = SpinBasis(lsize; num = num, kint = kint)
     vector = zeros(ELT, basis.dim)
-    idx = findindex(basis, bits) # find the index of the assigned state
+    idx = first(findindex(basis, bits)) # find the index of the assigned state
     idx > basis.dim && error("bitstring not in basis!")
     vector[idx] = one(ELT) # nonzero coefficient only for the assigned state
     QState{ELT, SpinBasis}(basis, vector)
