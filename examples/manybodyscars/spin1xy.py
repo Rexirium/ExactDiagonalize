@@ -1,22 +1,32 @@
 import numpy as np
+import numpy.linalg as LA
 from functools import reduce
 from quspin.basis import spin_basis_1d
 from quspin.operators import hamiltonian
 from quspin.tools.measurements import ED_state_vs_time
 
-def spin1xy_spectrum(basis, J:float, h:float):
+def spin1xy_spectrum(bases, lsize:int, J:float, h:float):
     # 构造哈密顿量
-    lsize = basis.L
     # S^x S^x + S^y S^y 项
     static = [["+-", [[J/2, i, (i+1) % lsize] for i in range(lsize)]]]
     static += [["-+", [[J/2, i, (i+1) % lsize] for i in range(lsize)]]]
     # h S^z 项
     static += [["z", [[h, i] for i in range(lsize)]]]
-    H = hamiltonian(static, [], basis=basis, dtype=np.float64)
-    return H.eigh()
+    
+    if isinstance(bases, list) == False:
+        H = hamiltonian(static, [], basis=bases, dtype=np.float64)
+        return H.eigh()
+    
+    Es, Us = [], []
+    for basis in bases:
+        H = hamiltonian(static, [], basis=basis, dtype=np.float64)
+        E, U = H.eigh()
+        Es.append(E)
+        Us.append(U)
 
-def make_initialstate(basis, statestr:str, s:int):
-    lsize = basis.L
+    return Es, Us
+
+def make_initialstate(bases, lsize:int, statestr:str, s:int):
     
     vp = np.array([1., 0., 1.]) / np.sqrt(2)
     vm = np.array([-1., 0., 1.]) / np.sqrt(2)
@@ -45,22 +55,15 @@ def make_initialstate(basis, statestr:str, s:int):
         vs[s + 1] = 1.0
         psi_full = reduce(np.kron, [vs] * lsize)
     
-    return psi_full[basis.states]
-
-def spin1xy_dynamic(basis, psi0:np.ndarray, ts:np.ndarray, J:float, h:float):
-    E, U = spin1xy_spectrum(basis, J, h)
-    print("spectrum solved")
-    b = basis.L // 2
-    subA = tuple(range(b))
+    if isinstance(bases, list) == False:
+        return psi_full[bases.states]
     
-    psi_t = ED_state_vs_time(psi0, E, U, ts, iterate=True)
+    psis = []
+    for basis in bases:
+        psi = psi_full[basis.states]
+        psis.append(psi)
     
-    entropies = np.zeros_like(ts)
-    for i, psi in enumerate(psi_t):
-        entr = basis.ent_entropy(psi, sub_sys_A=subA, return_rdm=None, sparse_diag=True)
-        entropies[i] = entr["Sent_A"]
-    
-    return entropies
+    return psis
         
     
 # --- 主程序 ---
@@ -71,7 +74,7 @@ if __name__=="__main__":
     b = L // 2
     
     basis = spin_basis_1d(L=L, S="1")
-    E, U = spin1xy_spectrum(basis, J, h)
+    E, U = spin1xy_spectrum(basis, L, J, h)
     print("spectrum solved")
     
     ts = np.geomspace(0.1, 1e7, 501)
@@ -81,7 +84,7 @@ if __name__=="__main__":
     
     entropies = np.zeros((len(ts), 3))
     for n, ss in enumerate(psis):
-        psi0 = make_initialstate(basis, ss, 1)
+        psi0 = make_initialstate(basis, L, ss, 1)
         psi_t = ED_state_vs_time(psi0, E, U, ts, iterate=True)
         
         for i, psi in enumerate(psi_t):
