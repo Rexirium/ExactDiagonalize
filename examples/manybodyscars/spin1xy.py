@@ -79,7 +79,6 @@ if __name__=="__main__":
     J, h = 1.0, 0.5
     b = L // 2
     
-    basis_full = spin_basis_1d(L=L, S="1")
     bases = [spin_basis_1d(L=L, S="1", Nup=n) for n in range(2*L +1)]
     num_bases = len(bases)
     
@@ -103,6 +102,7 @@ if __name__=="__main__":
 
         psi_t_list.append(psi_t)
 
+    basis_full = spin_basis_1d(L=L, S="1")
     psi = np.zeros(pow(3, L), dtype=complex)
     for i, psis in enumerate(zip(*psi_t_list)):
         for n, basis in enumerate(bases):
