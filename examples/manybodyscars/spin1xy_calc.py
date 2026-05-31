@@ -1,6 +1,6 @@
 from spin1xy import *
 
-L = 8
+L = 6
 nt = 501
 J, h = 1.0, 0.5
 b = L // 2
@@ -34,7 +34,6 @@ for k, ss in enumerate(psis):
         for n, basis in enumerate(bases):
             psi[basis.states] = psis[n]
         
-        entr = basis_full.ent_entropy(psi, sub_sys_A=subA, return_rdm=None, sparse_diag=True)
-        entropies[i, k] = entr["Sent_A"]
+        entropies[i, k] = my_ent_entropy(basis, psi, b, density=False)
     
 np.savez(f"examples/manybodyscars/spin1xy_L={L}.npz", ts = ts, entropies = entropies)
