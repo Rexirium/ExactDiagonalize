@@ -3,5 +3,6 @@
 .github/
 Manifest.toml
 *.png
+*.pdf
 *.sh
 

@@ -1,10 +1,10 @@
 from spin1xy import *
 
-Ls = [6, 8, 10, 12, 14, 16]
-nmax = 2
+Ls = [6, 8, 10, 12]
+nmax = 3
 J, h = 1.0, 1.0
-nt = 501
-ts = np.geomspace(0.1, 1e8, nt)
+nt = 101
+ts = np.linspace(0.0, 120, nt)
 
 
 nbasis = nmax + 1
@@ -46,7 +46,7 @@ for il, L in enumerate(Ls):
         
     print("L = {} entropy obtained".format(L))
 
-np.savez(f"examples/manybodyscars/spin1xy_nmax={nmax}_Lmax={Ls[-1]}_scar.npz", 
+np.savez(f"examples/manybodyscars/spin1xy_nmax={nmax}_Lmax={Ls[-1]}_scar_linear.npz", 
         Ls = np.array(Ls), ts = ts,
         params = np.array([J, h]),  
         entropies=entropies

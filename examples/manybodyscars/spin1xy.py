@@ -153,6 +153,7 @@ def my_ent_entropy(basis:np.ndarray, sps:int, psi:np.ndarray, b:int, density:boo
     
 if __name__=="__main__":
     import matplotlib.pyplot as plt
+    rng = np.random.default_rng(123)
     
     L = 10
     J, h = 1.0, 1.0
@@ -165,7 +166,8 @@ if __name__=="__main__":
     E, U = spin1xy_spectrum(basis, L, J, h)
     print("spectrum solved")
     
-    psi0 = make_athermal_initial(basis, n_mag)
+    psi0 = rng.normal(size=basis.Ns)
+    psi0 /= sla.norm(psi0)
     
     nt = 201
     ts = np.geomspace(0.1, 1e8, nt)
