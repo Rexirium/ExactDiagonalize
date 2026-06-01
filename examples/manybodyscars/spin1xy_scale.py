@@ -15,6 +15,7 @@ entropies = np.zeros((nt, len(Ls)))
 entropies_full = np.zeros_like(ts_full)
 
 for n, L in enumerate(Ls):
+    b = L // 2
     basis = spin_basis_1d(L=L, S="1", Nup = Stot)
     E, U = spin1xy_spectrum(basis, L, J, h)
     print("L = {} spectrum solved".format(L))
@@ -26,7 +27,7 @@ for n, L in enumerate(Ls):
     
     subA = tuple(range(L // 2))
     for i, psi in enumerate(psi_t):
-        entr = my_ent_entropy(basis, psi, L // 2, density=False)
+        entr = my_ent_entropy(basis.states, 3, psi, b, density=False)
         entropies_full[i] = entr
         
     entropies[:, n] = latetime_average(entropies_full, profile)
